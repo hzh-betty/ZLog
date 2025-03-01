@@ -19,13 +19,13 @@ namespace mylog
         time_t curtime_;        // 日志输出时间
         LogLevel::value level_; // 日志等级
         std::string file_;      // 源码文件名称与行号
-        std::string line_;
+        size_t line_;
         threadId tid_;        // 线程ID
         std::string payload_; // 日志主体消息
         std::string logger_;  // 日志器名称
 
         LogMessage(LogLevel::value level,
-                   std::string file, std::string line,
+                   std::string file, size_t line,
                    std::string payload, std::string logger)
             : curtime_(Date::getCurrentTime()), level_(level),
               file_(file), line_(line), tid_(std::this_thread::get_id()),
