@@ -138,6 +138,7 @@ namespace mylog
     class Formmatter
     {
     public:
+        using ptr = std::shared_ptr<Formmatter>;
         Formmatter(const std::string &pattern = "[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n")
             : pattern_(pattern)
         {
