@@ -1,10 +1,4 @@
-#include "util.hpp"
-#include "level.hpp"
-#include "message.hpp"
-#include "format.hpp"
-#include "sink.hpp"
-#include "logger.hpp"
-#include "buffer.hpp"
+#include "mylog.h"
 #include <thread>
 #include <fstream>
 
@@ -158,23 +152,55 @@ void test8()
     std::unique_ptr<mylog::LocalLoggerBuilder> builder(new mylog::LocalLoggerBuilder());
     builder->buildLoggerName("async_logger");
     builder->buildLoggerLevel(mylog::LogLevel::value::WARNING);
-    builder->buildLoggerFormmater("[%c]%m%n");
+    builder->buildLoggerFormmater("[%c][%f:%l]%T%m%n");
     builder->buildLoggerType(mylog::LoggerType::LOGGER_ASYNC);
     builder->buildEnalleUnSafe();
     builder->buildLoggerSink<mylog::FileSink>("./logfile/async.log");
     builder->buildLoggerSink<mylog::StdOutSink>();
     mylog::Logger::ptr logger = builder->build();
-    logger->debug(__FILE__, __LINE__, "%s", "测试日志");
-    logger->info(__FILE__, __LINE__, "%s", "测试日志");
-    logger->warn(__FILE__, __LINE__, "%s", "测试日志");
-    logger->error(__FILE__, __LINE__, "%s", "测试日志");
-    logger->fatal(__FILE__, __LINE__, "%s", "测试日志");
+    logger->debug("%s", "测试日志");
+    logger->info("%s", "测试日志");
+    logger->warn("%s", "测试日志");
+    logger->error("%s", "测试日志");
+    logger->fatal("%s", "测试日志");
 
-    size_t curSize = 0;
     size_t cnt = 0;
     while (cnt < 500000)
     {
-        logger->fatal(__FILE__, __LINE__, "%s%d", "测试日志-", cnt++);
+        logger->fatal("%s%d", "测试日志-", cnt++);
+    }
+}
+
+// 测试全局日志器建造者
+void test9()
+{
+    mylog::Logger::ptr logger = mylog::LoggerManager::getInstance().getLogger("async_logger");
+    logger->debug("%s", "测试日志");
+    logger->info("%s", "测试日志");
+    logger->warn("%s", "测试日志");
+    logger->error("%s", "测试日志");
+    logger->fatal("%s", "测试日志");
+
+    size_t cnt = 0;
+    while (cnt < 500000)
+    {
+        logger->fatal("%s%d", "测试日志-", cnt++);
+    }
+}
+
+// 测试宏的替换
+void test10()
+{
+    DEBUG("%s", "测试日志");
+    INFO("%s", "测试日志");
+    WARN("%s", "测试日志");
+    ERROR("%s", "测试日志");
+    FATAL("%s", "测试日志");
+
+    size_t cnt = 0;
+    while (cnt < 500000)
+    {
+        FATAL("%s%d", "测试日志-", cnt++);
     }
 }
 int main()
@@ -185,8 +211,18 @@ int main()
     // test4();
     // test5();
     // test6();
-    //test7();
-    test8();
-
+    // test7();
+    // test8();
+    // std::unique_ptr<mylog::GlobalLoggerBuilder> builder(new mylog::GlobalLoggerBuilder());
+    // builder->buildLoggerName("async_logger");
+    // builder->buildLoggerLevel(mylog::LogLevel::value::WARNING);
+    // builder->buildLoggerFormmater("[%c][%f:%l]%T%m%n");
+    // builder->buildLoggerType(mylog::LoggerType::LOGGER_ASYNC);
+    // builder->buildEnalleUnSafe();
+    // builder->buildLoggerSink<mylog::FileSink>("./logfile/async.log");
+    // builder->buildLoggerSink<mylog::StdOutSink>();
+    // mylog::Logger::ptr logger = builder->build();
+    // test9();
+    test10();
     return 0;
 }

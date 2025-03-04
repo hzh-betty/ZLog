@@ -13,6 +13,7 @@
 #include "message.hpp"
 #include "sink.hpp"
 #include "looper.hpp"
+#include <unordered_map>
 #include <mutex>
 #include <atomic>
 #include <cstdarg>
@@ -31,6 +32,10 @@ namespace mylog
         {
         }
 
+        const std::string &getName() const
+        {
+            return loggerName_;
+        }
         void debug(const std::string &file, size_t line, const std::string &fmt, ...)
         {
             // 1.判断消息级别
@@ -302,4 +307,92 @@ namespace mylog
             return std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
         }
     };
+
+    class LoggerManager
+    {
+    public:
+        static LoggerManager &getInstance()
+        {
+            static LoggerManager eton;
+            return eton;
+        }
+        void addLogger(Logger::ptr &logger)
+        {
+            if (hasLogger(logger->getName()))
+                return;
+            std::unique_lock<std::mutex> lock(mutex_);
+            loggers_.insert({logger->getName(), logger});
+        }
+
+        bool hasLogger(const std::string &name)
+        {
+            std::unique_lock<std::mutex>(mutex_);
+            auto iter = loggers_.find(name);
+            if (iter == loggers_.end())
+            {
+                return false;
+            }
+            return true;
+        }
+        Logger::ptr getLogger(const std::string &name)
+        {
+            std::unique_lock<std::mutex>(mutex_);
+            auto iter = loggers_.find(name);
+            if (iter == loggers_.end())
+            {
+                return Logger::ptr(); // 匿名对象
+            }
+            return iter->second;
+        }
+        
+        Logger::ptr rootLogger()
+        { 
+            return rootLogger_;
+        }
+
+    private:
+        LoggerManager()
+        {
+            std::unique_ptr<mylog::LocalLoggerBuilder> builder(new mylog::LocalLoggerBuilder());
+            builder->buildLoggerName("root");
+            rootLogger_ = builder->build();
+            loggers_.insert({"root", rootLogger_});
+        }
+
+    private:
+        std::mutex mutex_;
+        Logger::ptr rootLogger_; // 默认日志器
+        std::unordered_map<std::string, Logger::ptr> loggers_;
+    };
+
+    /* 全局日志器建造者 */
+    class GlobalLoggerBuilder : public LoggerBuilder
+    {
+    public:
+        Logger::ptr build() override
+        {
+            assert(!loggerName_.empty()); // 必须有日志器名称
+
+            if (formmatter_.get() == nullptr)
+            {
+                formmatter_ = std::make_shared<Formmatter>();
+            }
+
+            if (sinks_.empty())
+            {
+                buildLoggerSink<StdOutSink>();
+            }
+            
+            Logger::ptr logger;
+            if (loggerType_ == LoggerType::LOGGER_ASYNC)
+            {
+                logger = std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_);
+            }
+
+            logger = std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
+            LoggerManager::getInstance().addLogger(logger);
+            return logger;
+        }
+    };
+
 };

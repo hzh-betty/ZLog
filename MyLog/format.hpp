@@ -195,7 +195,7 @@ namespace mylog
                     val.clear();
                 }
 
-                // 4. 开始处理格式化字符
+                // 4. 是%，开始处理格式化字符
                 if (++pos == n)
                 {
                     std::cerr << "%之后没有格式化字符" << std::endl;
