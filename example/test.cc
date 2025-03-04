@@ -1,4 +1,4 @@
-#include "mylog.h"
+#include "../mylog/log.h"
 #include <thread>
 #include <fstream>
 
@@ -53,12 +53,6 @@ void test4()
         curSize += tmp.size();
     }
 
-    mylog::LogSink::ptr time_ptr = mylog::SinkFactory::create<mylog::RollByTimeSink>("./logfile/roll-", mylog::TimeGap::GAP_SECOND);
-    time_t cur = mylog::Date::getCurrentTime();
-    while (mylog::Date::getCurrentTime() < cur + 5)
-    {
-        time_ptr->log(str.c_str(), str.size());
-    }
 }
 
 // 测试同步日志器模块

@@ -1,5 +1,5 @@
-test:test.cc
+example:example.cc
 	g++ -o $@ $^ -lpthread -g -std=c++11 
 .PHONY:clean
 clean:
-	rm -f test
+	rm -f example
