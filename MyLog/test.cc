@@ -4,7 +4,10 @@
 #include "format.hpp"
 #include "sink.hpp"
 #include "logger.hpp"
+#include "buffer.hpp"
 #include <thread>
+#include <fstream>
+
 // 测试公共功能接口的设计
 void test1()
 {
@@ -90,7 +93,7 @@ void test5()
     }
 }
 
-// 建造者模式
+// 测试建造者模式
 void test6()
 {
     std::unique_ptr<mylog::LocalLoggerBuilder> builder(new mylog::LocalLoggerBuilder());
@@ -115,6 +118,65 @@ void test6()
         curSize += 20;
     }
 }
+
+// 测试向缓冲区的写入与读取
+void test7()
+{
+    std::ifstream ifs("./logfile/test.log", std::ios::binary);
+    if (!ifs.is_open())
+        return;
+    ifs.seekg(0, std::ios::end);
+    size_t fsize = ifs.tellg();
+    ifs.seekg(0, std::ios::beg);
+    std::string body;
+    body.resize(fsize);
+    ifs.read(&body[0], fsize);
+    if (!ifs.good())
+    {
+        std::cerr << "read error" << std::endl;
+        return;
+    }
+    ifs.close();
+    mylog::Buffer buffer;
+    for (int i = 0; i < body.size(); i++)
+    {
+        buffer.push(&body[i], 1);
+    }
+    std::ofstream ofs("./logfile/tmp.log", std::ios::binary);
+    size_t n = buffer.readAbleSize();
+    for (int i = 0; i < n; i++)
+    {
+        ofs.write(buffer.begin(), 1);
+        buffer.moveReader(1);
+    }
+    ofs.close();
+}
+
+// 测试异步日志器
+void test8()
+{
+    std::unique_ptr<mylog::LocalLoggerBuilder> builder(new mylog::LocalLoggerBuilder());
+    builder->buildLoggerName("async_logger");
+    builder->buildLoggerLevel(mylog::LogLevel::value::WARNING);
+    builder->buildLoggerFormmater("[%c]%m%n");
+    builder->buildLoggerType(mylog::LoggerType::LOGGER_ASYNC);
+    builder->buildEnalleUnSafe();
+    builder->buildLoggerSink<mylog::FileSink>("./logfile/async.log");
+    builder->buildLoggerSink<mylog::StdOutSink>();
+    mylog::Logger::ptr logger = builder->build();
+    logger->debug(__FILE__, __LINE__, "%s", "测试日志");
+    logger->info(__FILE__, __LINE__, "%s", "测试日志");
+    logger->warn(__FILE__, __LINE__, "%s", "测试日志");
+    logger->error(__FILE__, __LINE__, "%s", "测试日志");
+    logger->fatal(__FILE__, __LINE__, "%s", "测试日志");
+
+    size_t curSize = 0;
+    size_t cnt = 0;
+    while (cnt < 500000)
+    {
+        logger->fatal(__FILE__, __LINE__, "%s%d", "测试日志-", cnt++);
+    }
+}
 int main()
 {
     // test1();
@@ -122,6 +184,9 @@ int main()
     // test3();
     // test4();
     // test5();
-    test6();
+    // test6();
+    //test7();
+    test8();
+
     return 0;
 }

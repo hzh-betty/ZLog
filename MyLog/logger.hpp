@@ -12,6 +12,7 @@
 #include "format.hpp"
 #include "message.hpp"
 #include "sink.hpp"
+#include "looper.hpp"
 #include <mutex>
 #include <atomic>
 #include <cstdarg>
@@ -174,7 +175,7 @@ namespace mylog
         }
 
     protected:
-        void log(const char *data, size_t len)
+        void log(const char *data, size_t len) override
         {
             std::unique_lock<std::mutex> lock(mutex_);
             if (sinks_.empty())
@@ -184,6 +185,42 @@ namespace mylog
                 sink->log(data, len);
             }
         }
+    };
+
+    /*异步日志器*/
+    class AsyncLogger : public Logger
+    {
+    public:
+        AsyncLogger(const std::string &loggerName, LogLevel::value limitLevel,
+                    Formmatter::ptr &formmatter,
+                    std::vector<LogSink::ptr> &sinks, AsyncType looperType) : Logger(loggerName, limitLevel, formmatter, sinks),
+                                                                              looper_(std::make_shared<AsyncLooper>(std::bind(&AsyncLogger::reLog,
+                                                                                                                              this, std::placeholders::_1),
+                                                                                                                    looperType))
+
+        {
+        }
+
+    protected:
+        // 将数据写入到缓冲区
+        void log(const char *data, size_t len) override
+        {
+            looper_->push(data, len);
+        }
+
+        // 设计一个实际落地函数，将数据从缓冲区中落地
+        void reLog(Buffer &buffer)
+        {
+            if (sinks_.empty())
+                return;
+            for (auto &sink : sinks_)
+            {
+                sink->log(buffer.begin(), buffer.readAbleSize());
+            }
+        }
+
+    protected:
+        AsyncLooper::ptr looper_;
     };
 
     /*使用建造者模式，降低使用户使用成本*/
@@ -196,14 +233,17 @@ namespace mylog
     {
     public:
         LoggerBuilder()
-            : loggerType_(LoggerType::LOGGER_SYNC), limitLevel_(LogLevel::value::DEBUG)
+            : loggerType_(LoggerType::LOGGER_SYNC), limitLevel_(LogLevel::value::DEBUG), looperType_(AsyncType::ASYNC_SAFE)
         {
         }
         void buildLoggerType(LoggerType loggerType)
         {
             loggerType_ = loggerType;
         }
-
+        void buildEnalleUnSafe()
+        {
+            looperType_ = AsyncType::ASYNC_UNSAFE;
+        }
         void buildLoggerName(const std::string &loggerName)
         {
             loggerName_ = loggerName;
@@ -233,32 +273,33 @@ namespace mylog
         LogLevel::value limitLevel_;
         Formmatter::ptr formmatter_;
         std::vector<LogSink::ptr> sinks_;
+        AsyncType looperType_;
     };
 
     /* 局部日志器建造者 */
-    class LocalLoggerBuilder:public LoggerBuilder
+    class LocalLoggerBuilder : public LoggerBuilder
     {
     public:
         Logger::ptr build() override
         {
             assert(!loggerName_.empty()); // 必须有日志器名称
 
-            if(formmatter_.get() == nullptr)
+            if (formmatter_.get() == nullptr)
             {
                 formmatter_ = std::make_shared<Formmatter>();
             }
 
-            if(sinks_.empty())
+            if (sinks_.empty())
             {
                 buildLoggerSink<StdOutSink>();
             }
 
-            if(loggerType_ == LoggerType::LOGGER_ASYNC)
+            if (loggerType_ == LoggerType::LOGGER_ASYNC)
             {
-               ;
+                return std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_);
             }
 
-            return std::make_shared<SyncLogger>(loggerName_,limitLevel_,formmatter_,sinks_);
+            return std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
         }
     };
 };

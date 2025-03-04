@@ -49,6 +49,9 @@
         "typeinfo": "cpp",
         "thread": "cpp",
         "condition_variable": "cpp",
-        "mutex": "cpp"
+        "mutex": "cpp",
+        "cstring": "cpp",
+        "buffer": "cpp",
+        "netfwd": "cpp"
     }
 }
