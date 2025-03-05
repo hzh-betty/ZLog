@@ -44,8 +44,16 @@ namespace zlog
         }
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            char buffer[40] = {0};
-            strftime(buffer, sizeof(buffer) - 1, timeFormat_.c_str(), localtime(&msg.curtime_));
+            time_t t = msg.curtime_; // 获取日志时间
+            struct tm lt;
+// Windows使用localtime_s，Linux使用localtime_r
+#ifdef _WIN32
+            localtime_s(&lt, &t);
+#else
+            localtime_r(&t, &lt);
+#endif
+            char buffer[25] = {0};
+            strftime(buffer, sizeof(buffer), timeFormat_.c_str(), &lt); // 使用转换后的tm结构体
             out << buffer;
         }
 
@@ -142,7 +150,10 @@ namespace zlog
         Formmatter(const std::string &pattern = "[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n")
             : pattern_(pattern)
         {
-            assert(parsePattern());
+            if (!parsePattern())
+            {
+                ;
+            }
         }
 
         void format(std::ostream &out, const LogMessage &msg)

@@ -2,9 +2,13 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#ifdef _WIN32
+#include <direct.h>
+#else
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 namespace zlog
 {
     /*
@@ -55,19 +59,29 @@ namespace zlog
             size_t index = 0;
             while (index < pathname.size())
             {
-                pos = pathname.find_first_of("/\\",index);
+                pos = pathname.find_first_of("/\\", index);
                 if (pos == std::string::npos)
                 {
-                    mkdir(pathname.c_str(), 0777);
+                    makeDir(pathname);
                     break;
                 }
                 std::string parentPath = pathname.substr(0, pos + 1);
                 if (!exists(parentPath))
                 {
-                    mkdir(parentPath.c_str(), 0777);
+                    makeDir(pathname);
                 }
                 index = pos + 1;
             }
+        }
+
+    private:
+        static void makeDir(const std::string &pathname)
+        {
+#ifdef _WIN32
+            _mkdir(pathname.c_str());
+#else
+            mkdir(pathname.c_str(), 0777);
+#endif
         }
     };
 };

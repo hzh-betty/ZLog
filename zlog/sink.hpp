@@ -93,7 +93,12 @@ namespace zlog
         {
             time_t t = Date::getCurrentTime();
             struct tm lt;
+#ifdef _WIN32
+            localtime_s(&lt, &t);
+#else
             localtime_r(&t, &lt);
+
+#endif
             std::stringstream filename;
             filename << basename_ << (lt.tm_year + 1900) << (lt.tm_mon + 1) << lt.tm_mday
                      << lt.tm_hour << lt.tm_min << lt.tm_sec << "-" << nameCount++ << ".log";

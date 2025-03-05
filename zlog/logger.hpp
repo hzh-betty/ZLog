@@ -36,7 +36,7 @@ namespace zlog
         {
             return loggerName_;
         }
-        void debug(const std::string &file, size_t line, const std::string &fmt, ...)
+        void debug(const std::string &file, size_t line, const std::string fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::DEBUG < limitLevel_)
@@ -45,20 +45,27 @@ namespace zlog
             // 2. 提取不定参数
             va_list ap;
             va_start(ap, fmt);
-            char *res;
-            int ret = vasprintf(&res, fmt.c_str(), ap);
-            if (ret == -1)
-            {
-                std::cout << "vasprintf failed";
-                va_end(ap);
-                return;
+            char *res = nullptr;
+#ifdef _WIN32
+            int len = _vscprintf(fmt.c_str(), ap);
+            if (len < 0)
+            { /* 错误处理 */
+                std::cerr << "_vscprintf fail" << std::endl;
             }
+            res = static_cast<char *>(malloc(len + 1));
+            vsnprintf_s(res, len + 1, _TRUNCATE, fmt.c_str(), ap);
+#else
+            if (vasprintf(&res, fmt.c_str(), ap) < 0)
+            {
+                std::cerr << "vasprintf fail" << std::endl;
+            }
+#endif
             va_end(ap);
             serialize(LogLevel::value::DEBUG, file, line, res);
             free(res);
         }
 
-        void info(const std::string &file, size_t line, const std::string &fmt, ...)
+        void info(const std::string &file, size_t line, const std::string fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::INFO < limitLevel_)
@@ -67,20 +74,27 @@ namespace zlog
             // 2. 提取不定参数
             va_list ap;
             va_start(ap, fmt);
-            char *res;
-            int ret = vasprintf(&res, fmt.c_str(), ap);
-            if (ret == -1)
-            {
-                std::cout << "vasprintf failed";
-                va_end(ap);
-                return;
+            char *res = nullptr;
+#ifdef _WIN32
+            int len = _vscprintf(fmt.c_str(), ap);
+            if (len < 0)
+            { /* 错误处理 */
+                std::cerr << "_vscprintf fail" << std::endl;
             }
+            res = static_cast<char *>(malloc(len + 1));
+            vsnprintf_s(res, len + 1, _TRUNCATE, fmt.c_str(), ap);
+#else
+            if (vasprintf(&res, fmt.c_str(), ap) < 0)
+            {
+                std::cerr << "vasprintf fail" << std::endl;
+            }
+#endif
             va_end(ap);
             serialize(LogLevel::value::INFO, file, line, res);
             free(res);
         }
 
-        void warn(const std::string &file, size_t line, const std::string &fmt, ...)
+        void warn(const std::string &file, size_t line, const std::string fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::WARNING < limitLevel_)
@@ -89,20 +103,27 @@ namespace zlog
             // 2. 提取不定参数
             va_list ap;
             va_start(ap, fmt);
-            char *res;
-            int ret = vasprintf(&res, fmt.c_str(), ap);
-            if (ret == -1)
-            {
-                std::cout << "vasprintf failed";
-                va_end(ap);
-                return;
+            char *res = nullptr;
+#ifdef _WIN32
+            int len = _vscprintf(fmt.c_str(), ap);
+            if (len < 0)
+            { /* 错误处理 */
+                std::cerr << "_vscprintf fail" << std::endl;
             }
+            res = static_cast<char *>(malloc(len + 1));
+            vsnprintf_s(res, len + 1, _TRUNCATE, fmt.c_str(), ap);
+#else
+            if (vasprintf(&res, fmt.c_str(), ap) < 0)
+            {
+                std::cerr << "vasprintf fail" << std::endl;
+            }
+#endif
             va_end(ap);
             serialize(LogLevel::value::WARNING, file, line, res);
             free(res);
         }
 
-        void error(const std::string &file, size_t line, const std::string &fmt, ...)
+        void error(const std::string &file, size_t line, const std::string fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::ERROR < limitLevel_)
@@ -111,20 +132,27 @@ namespace zlog
             // 2. 提取不定参数
             va_list ap;
             va_start(ap, fmt);
-            char *res;
-            int ret = vasprintf(&res, fmt.c_str(), ap);
-            if (ret == -1)
-            {
-                std::cout << "vasprintf failed";
-                va_end(ap);
-                return;
+            char *res = nullptr;
+#ifdef _WIN32
+            int len = _vscprintf(fmt.c_str(), ap);
+            if (len < 0)
+            { /* 错误处理 */
+                std::cerr << "_vscprintf fail" << std::endl;
             }
+            res = static_cast<char *>(malloc(len + 1));
+            vsnprintf_s(res, len + 1, _TRUNCATE, fmt.c_str(), ap);
+#else
+            if (vasprintf(&res, fmt.c_str(), ap) < 0)
+            {
+                std::cerr << "vasprintf fail" << std::endl;
+            }
+#endif
             va_end(ap);
             serialize(LogLevel::value::ERROR, file, line, res);
             free(res);
         }
 
-        void fatal(const std::string &file, size_t line, const std::string &fmt, ...)
+        void fatal(const std::string &file, size_t line, const std::string fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::FATAL < limitLevel_)
@@ -133,14 +161,21 @@ namespace zlog
             // 2. 提取不定参数
             va_list ap;
             va_start(ap, fmt);
-            char *res;
-            int ret = vasprintf(&res, fmt.c_str(), ap);
-            if (ret == -1)
-            {
-                std::cout << "vasprintf failed";
-                va_end(ap);
-                return;
+            char *res = nullptr;
+#ifdef _WIN32
+            int len = _vscprintf(fmt.c_str(), ap);
+            if (len < 0)
+            { /* 错误处理 */
+                std::cerr << "_vscprintf fail" << std::endl;
             }
+            res = static_cast<char *>(malloc(len + 1));
+            vsnprintf_s(res, len + 1, _TRUNCATE, fmt.c_str(), ap);
+#else
+            if (vasprintf(&res, fmt.c_str(), ap) < 0)
+            {
+                std::cerr << "vasprintf fail" << std::endl;
+            }
+#endif
             va_end(ap);
             serialize(LogLevel::value::FATAL, file, line, res);
             free(res);
