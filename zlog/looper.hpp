@@ -35,7 +35,7 @@ namespace zlog
                               { return proBuf_.writeAbleSize() >= len; });
             }
             proBuf_.push(data, len);
-            condCon_.notify_all();
+            condCon_.notify_one();
         }
 
         ~AsyncLooper()

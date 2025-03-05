@@ -46,6 +46,7 @@ namespace zlog
         {
             time_t t = msg.curtime_; // 获取日志时间
             struct tm lt;
+
 // Windows使用localtime_s，Linux使用localtime_r
 #ifdef _WIN32
             localtime_s(&lt, &t);
@@ -254,7 +255,17 @@ namespace zlog
         {
 
             if (key == "d")
-                return std::make_shared<TimeFormatItem>(val);
+            {
+                if(!val.empty())
+                {
+                    return std::make_shared<TimeFormatItem>(val);
+                }
+                else
+                {
+                    // 单独%d采用默认格式输出
+                    return std::make_shared<TimeFormatItem>();
+                }
+            }
             else if (key == "t")
                 return std::make_shared<TreadIdFormatItem>();
             else if (key == "c")
@@ -281,7 +292,7 @@ namespace zlog
         }
 
     protected:
-        std::string pattern_;
+        std::string pattern_; //格式化方式
         std::vector<FormatItem::prt> items_;
     };
 };

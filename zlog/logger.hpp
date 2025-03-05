@@ -282,6 +282,7 @@ namespace zlog
         }
         void buildEnalleUnSafe()
         {
+            if(loggerType_ == LoggerType::LOGGER_SYNC) return ;
             looperType_ = AsyncType::ASYNC_UNSAFE;
         }
         void buildLoggerName(const std::string &loggerName)
@@ -322,7 +323,11 @@ namespace zlog
     public:
         Logger::ptr build() override
         {
-            assert(!loggerName_.empty()); // 必须有日志器名称
+            // 必须有日志器名称
+            if (loggerName_.empty())
+            {
+                return Logger::ptr();
+            }
 
             if (formmatter_.get() == nullptr)
             {
@@ -343,7 +348,7 @@ namespace zlog
         }
     };
 
-    /*全局日志管理器*/
+    /*全局日志管理器，负责将每个日志器管理并实现全局访问*/
     class LoggerManager
     {
     public:
@@ -407,7 +412,11 @@ namespace zlog
     public:
         Logger::ptr build() override
         {
-            assert(!loggerName_.empty()); // 必须有日志器名称
+            // 必须要有日志器名
+            if (loggerName_.empty())
+            {
+                return Logger::ptr();
+            }
 
             if (formmatter_.get() == nullptr)
             {

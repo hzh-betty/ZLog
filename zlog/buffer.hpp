@@ -95,6 +95,7 @@ namespace zlog
 
             buffer_.resize(newSize);
         }
+        
         // 移动写下标
         void moveWriter(size_t len)
         {
