@@ -1,4 +1,4 @@
-#include "../mylog/log.h"
+#include "../zlog/zlog.h"
 
 /*
     %d 表示日期--包含子格式{%H-%M-%S}
@@ -16,20 +16,20 @@
 void loggerTest1()
 {
     // 1. 创建全局日志器建造器,可以在全局使用
-    std::unique_ptr<mylog::GlobalLoggerBuilder> builder(new mylog::GlobalLoggerBuilder());
+    std::unique_ptr<zlog::GlobalLoggerBuilder> builder(new zlog::GlobalLoggerBuilder());
 
     // 2. 输入参数，必须要日志器名称!!!
     builder->buildLoggerName("async_logger");
-    builder->buildLoggerLevel(mylog::LogLevel::value::WARNING);                          // 最低输出日志等级，默认为DEBUG
+    builder->buildLoggerLevel(zlog::LogLevel::value::WARNING);                          // 最低输出日志等级，默认为DEBUG
     builder->buildLoggerFormmater("[%c][%f:%l]%T%m%n");                                  // 日志输出格式
-    builder->buildLoggerType(mylog::LoggerType::LOGGER_ASYNC);                           // 启动异步输出
+    builder->buildLoggerType(zlog::LoggerType::LOGGER_ASYNC);                           // 启动异步输出
     builder->buildEnalleUnSafe();                                                        // 测试时启动非安全模式，其他情况不要启动安全模式！
-    builder->buildLoggerSink<mylog::FileSink>("./logfile/async.log");                    // 文件
-    builder->buildLoggerSink<mylog::StdOutSink>();                                       // 显示屏
-    builder->buildLoggerSink<mylog::RollBySizeSink>("./logfile/roll-", 1024 * 1024 * 5); // 滚动文件
+    builder->buildLoggerSink<zlog::FileSink>("./logfile/async.log");                    // 文件
+    builder->buildLoggerSink<zlog::StdOutSink>();                                       // 显示屏
+    builder->buildLoggerSink<zlog::RollBySizeSink>("./logfile/roll-", 1024 * 1024 * 5); // 滚动文件
 
     // 3. 获取对应的日志器
-    mylog::Logger::ptr logger = builder->build();
+    zlog::Logger::ptr logger = builder->build();
 
     // 4. 测试
     logger->debug("%s", "测试日志");
@@ -71,7 +71,7 @@ enum class TimeGap
     GAP_DAY,
 };
 
-class RollByTimeSink : public mylog::LogSink
+class RollByTimeSink : public zlog::LogSink
 {
 public:
     RollByTimeSink(const std::string &basename, TimeGap gaptype)
@@ -94,9 +94,9 @@ public:
         }
 
         // 1.获取当前时间节点
-        curGap_ = mylog::Date::getCurrentTime() / gapSize_;
+        curGap_ = zlog::Date::getCurrentTime() / gapSize_;
         std::string filename = createNewFile();
-        mylog::File::createDiretory(mylog::File::path(filename));
+        zlog::File::createDiretory(zlog::File::path(filename));
         ofs_.open(filename, std::ios::binary | std::ios::app);
         assert(ofs_.is_open());
     }
@@ -104,7 +104,7 @@ public:
     void log(const char *log, size_t len) override
     {
         // 如果时间节点不同则创建新文件
-        time_t cur = mylog::Date::getCurrentTime();
+        time_t cur = zlog::Date::getCurrentTime();
         if (cur / gapSize_ != curGap_)
         {
             ofs_.close();
@@ -119,7 +119,7 @@ protected:
     // 以时间为文件名
     std::string createNewFile()
     {
-        time_t t = mylog::Date::getCurrentTime();
+        time_t t = zlog::Date::getCurrentTime();
         struct tm lt;
         localtime_r(&t, &lt);
         std::stringstream filename;
@@ -139,19 +139,19 @@ protected:
 void loggerTest3()
 {
     // 1. 创建全局日志器建造器,可以在全局使用
-    std::unique_ptr<mylog::GlobalLoggerBuilder> builder(new mylog::GlobalLoggerBuilder());
+    std::unique_ptr<zlog::GlobalLoggerBuilder> builder(new zlog::GlobalLoggerBuilder());
 
     // 2. 输入参数，必须要日志器名称!!!
     builder->buildLoggerName("async_logger");
-    builder->buildLoggerLevel(mylog::LogLevel::value::WARNING); // 最低输出日志等级，默认为DEBUG
+    builder->buildLoggerLevel(zlog::LogLevel::value::WARNING); // 最低输出日志等级，默认为DEBUG
     builder->buildLoggerFormmater("[%c][%f:%l]%T%m%n");         // 日志输出格式
-    builder->buildLoggerType(mylog::LoggerType::LOGGER_ASYNC);  // 启动异步输出
+    builder->buildLoggerType(zlog::LoggerType::LOGGER_ASYNC);  // 启动异步输出
     builder->buildEnalleUnSafe();                               // 测试时启动非安全模式，其他情况不要启动安全模式！
     builder->buildLoggerSink<RollByTimeSink>("./logfile/time-", TimeGap::GAP_SECOND); // 滚动文件
-    mylog::Logger::ptr logger = builder->build();
-    time_t cur = mylog::Date::getCurrentTime();
+    zlog::Logger::ptr logger = builder->build();
+    time_t cur = zlog::Date::getCurrentTime();
     size_t cnt = 0;
-    while (mylog::Date::getCurrentTime() < cur + 5)
+    while (zlog::Date::getCurrentTime() < cur + 5)
     {
         logger->fatal("%s%d", "测试日志-", cnt++);
     }

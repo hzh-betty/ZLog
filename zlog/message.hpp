@@ -11,7 +11,7 @@
         5. 日志主体消息
         6. 日志器名称
 */
-namespace mylog
+namespace zlog
 {
     using threadId = std::thread::id;
     struct LogMessage

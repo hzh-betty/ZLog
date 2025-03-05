@@ -19,7 +19,7 @@
 #include <cstdarg>
 #include <cstdio>
 
-namespace mylog
+namespace zlog
 {
     class Logger
     {
@@ -354,7 +354,7 @@ namespace mylog
     private:
         LoggerManager()
         {
-            std::unique_ptr<mylog::LocalLoggerBuilder> builder(new mylog::LocalLoggerBuilder());
+            std::unique_ptr<zlog::LocalLoggerBuilder> builder(new zlog::LocalLoggerBuilder());
             builder->buildLoggerName("root");
             rootLogger_ = builder->build();
             loggers_.insert({"root", rootLogger_});

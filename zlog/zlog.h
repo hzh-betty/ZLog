@@ -1,6 +1,6 @@
 #pragma once
 #include "logger.hpp"
-namespace mylog
+namespace zlog
 {
     // 1. 提供获取指定日志器的全局接口--避免用户使用单例对象创建
     Logger::ptr getLogger(const std::string &name)
@@ -20,10 +20,10 @@ namespace mylog
 #define fatal(fmt, ...) fatal(__FILE__, __LINE__, fmt, ##__VA_ARGS__);
 
 // 3. 提供宏函数，直接通过默认日志器打印
-#define DEBUG(fmt, ...) mylog::rootLogger()->debug(fmt, ##__VA_ARGS__)
-#define INFO(fmt, ...) mylog::rootLogger()->info(fmt, ##__VA_ARGS__)
-#define WARN(fmt, ...) mylog::rootLogger()->warn(fmt, ##__VA_ARGS__)
-#define ERROR(fmt, ...) mylog::rootLogger()->error(fmt, ##__VA_ARGS__)
-#define FATAL(fmt, ...) mylog::rootLogger()->fatal(fmt, ##__VA_ARGS__)
+#define DEBUG(fmt, ...) zlog::rootLogger()->debug(fmt, ##__VA_ARGS__)
+#define INFO(fmt, ...) zlog::rootLogger()->info(fmt, ##__VA_ARGS__)
+#define WARN(fmt, ...) zlog::rootLogger()->warn(fmt, ##__VA_ARGS__)
+#define ERROR(fmt, ...) zlog::rootLogger()->error(fmt, ##__VA_ARGS__)
+#define FATAL(fmt, ...) zlog::rootLogger()->fatal(fmt, ##__VA_ARGS__)
 
 };

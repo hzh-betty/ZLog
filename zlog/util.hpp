@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-namespace mylog
+namespace zlog
 {
     /*
         1. 关于日期的常用接口

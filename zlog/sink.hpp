@@ -10,7 +10,7 @@
 #include <fstream>
 #include <cassert>
 #include <sstream>
-namespace mylog
+namespace zlog
 {
     class LogSink
     {

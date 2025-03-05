@@ -1,31 +1,33 @@
-#include "../mylog/log.h"
+#include "../zlog/zlog.h"
 #include <thread>
 #include <fstream>
+
+/* 一些写代码过程中设计的单元测试 */
 
 // 测试公共功能接口的设计
 void test1()
 {
-    std::cout << mylog::Date::getCurrentTime() << std::endl;
+    std::cout << zlog::Date::getCurrentTime() << std::endl;
     std::string pathname = "./abc/def/ghi";
-    mylog::File::createDiretory(mylog::File::path(pathname));
+    zlog::File::createDiretory(zlog::File::path(pathname));
 }
 // 测试日志等级
 void test2()
 {
-    std::cout << mylog::LogLevel::toString(mylog::LogLevel::value::DEBUG) << std::endl;
-    std::cout << mylog::LogLevel::toString(mylog::LogLevel::value::INFO) << std::endl;
-    std::cout << mylog::LogLevel::toString(mylog::LogLevel::value::WARNING) << std::endl;
-    std::cout << mylog::LogLevel::toString(mylog::LogLevel::value::ERROR) << std::endl;
-    std::cout << mylog::LogLevel::toString(mylog::LogLevel::value::OFF) << std::endl;
-    std::cout << mylog::LogLevel::toString(mylog::LogLevel::value::FATAL) << std::endl;
+    std::cout << zlog::LogLevel::toString(zlog::LogLevel::value::DEBUG) << std::endl;
+    std::cout << zlog::LogLevel::toString(zlog::LogLevel::value::INFO) << std::endl;
+    std::cout << zlog::LogLevel::toString(zlog::LogLevel::value::WARNING) << std::endl;
+    std::cout << zlog::LogLevel::toString(zlog::LogLevel::value::ERROR) << std::endl;
+    std::cout << zlog::LogLevel::toString(zlog::LogLevel::value::OFF) << std::endl;
+    std::cout << zlog::LogLevel::toString(zlog::LogLevel::value::FATAL) << std::endl;
 }
 
 // 测试日志格式化
 void test3()
 {
     std::string file = "test.cc";
-    mylog::LogMessage logmsg(mylog::LogLevel::value::INFO, file, 19, "这是一个测试", "master");
-    mylog::Formmatter fmt("abc%%abc[%d{%H:%M:%S]} %T%m%n");
+    zlog::LogMessage logmsg(zlog::LogLevel::value::INFO, file, 19, "这是一个测试", "master");
+    zlog::Formmatter fmt("abc%%abc[%d{%H:%M:%S]} %T%m%n");
     std::string str = fmt.format(logmsg);
     std::cout << str << std::endl;
 }
@@ -34,12 +36,12 @@ void test3()
 void test4()
 {
     std::string file = "test.cc";
-    mylog::LogMessage logmsg(mylog::LogLevel::value::INFO, file, 19, "这是一个测试", "master");
-    mylog::Formmatter fmt("abc%%abc[%d{%H:%M:%S]} %T%m%n");
+    zlog::LogMessage logmsg(zlog::LogLevel::value::INFO, file, 19, "这是一个测试", "master");
+    zlog::Formmatter fmt("abc%%abc[%d{%H:%M:%S]} %T%m%n");
     std::string str = fmt.format(logmsg);
-    mylog::LogSink::ptr stdout_ptr = mylog::SinkFactory::create<mylog::StdOutSink>();
-    mylog::LogSink::ptr file_ptr = mylog::SinkFactory::create<mylog::FileSink>("./logfile/test.log");
-    mylog::LogSink::ptr roll_ptr = mylog::SinkFactory::create<mylog::RollBySizeSink>("./logfile/roll-", 1024 * 1024);
+    zlog::LogSink::ptr stdout_ptr = zlog::SinkFactory::create<zlog::StdOutSink>();
+    zlog::LogSink::ptr file_ptr = zlog::SinkFactory::create<zlog::FileSink>("./logfile/test.log");
+    zlog::LogSink::ptr roll_ptr = zlog::SinkFactory::create<zlog::RollBySizeSink>("./logfile/roll-", 1024 * 1024);
     stdout_ptr->log(str.c_str(), str.size());
     file_ptr->log(str.c_str(), str.size());
     roll_ptr->log(str.c_str(), str.size());
@@ -60,13 +62,13 @@ void test5()
 {
 
     std::string loggerName = "sync_logger";
-    mylog::LogLevel::value limmit = mylog::LogLevel::value::WARNING;
-    mylog::Formmatter::ptr formmatter(new mylog::Formmatter());
-    mylog::LogSink::ptr stdout_ptr = mylog::SinkFactory::create<mylog::StdOutSink>();
-    mylog::LogSink::ptr file_ptr = mylog::SinkFactory::create<mylog::FileSink>("./logfile/test.log");
-    mylog::LogSink::ptr roll_ptr = mylog::SinkFactory::create<mylog::RollBySizeSink>("./logfile/roll-", 1024 * 1024);
-    std::vector<mylog::LogSink::ptr> sinks = {stdout_ptr, file_ptr, roll_ptr};
-    mylog::Logger::ptr logger(new mylog::SyncLogger(loggerName, limmit, formmatter, sinks));
+    zlog::LogLevel::value limmit = zlog::LogLevel::value::WARNING;
+    zlog::Formmatter::ptr formmatter(new zlog::Formmatter());
+    zlog::LogSink::ptr stdout_ptr = zlog::SinkFactory::create<zlog::StdOutSink>();
+    zlog::LogSink::ptr file_ptr = zlog::SinkFactory::create<zlog::FileSink>("./logfile/test.log");
+    zlog::LogSink::ptr roll_ptr = zlog::SinkFactory::create<zlog::RollBySizeSink>("./logfile/roll-", 1024 * 1024);
+    std::vector<zlog::LogSink::ptr> sinks = {stdout_ptr, file_ptr, roll_ptr};
+    zlog::Logger::ptr logger(new zlog::SyncLogger(loggerName, limmit, formmatter, sinks));
     logger->debug(__FILE__, __LINE__, "%s", "测试日志");
     logger->info(__FILE__, __LINE__, "%s", "测试日志");
     logger->warn(__FILE__, __LINE__, "%s", "测试日志");
@@ -84,14 +86,14 @@ void test5()
 // 测试建造者模式
 void test6()
 {
-    std::unique_ptr<mylog::LocalLoggerBuilder> builder(new mylog::LocalLoggerBuilder());
+    std::unique_ptr<zlog::LocalLoggerBuilder> builder(new zlog::LocalLoggerBuilder());
     builder->buildLoggerName("sync_logger");
-    builder->buildLoggerLevel(mylog::LogLevel::value::WARNING);
+    builder->buildLoggerLevel(zlog::LogLevel::value::WARNING);
     builder->buildLoggerFormmater("%m%n");
-    builder->buildLoggerType(mylog::LoggerType::LOGGER_SYNC);
-    builder->buildLoggerSink<mylog::FileSink>("./logfile/test.log");
-    builder->buildLoggerSink<mylog::StdOutSink>();
-    mylog::Logger::ptr logger = builder->build();
+    builder->buildLoggerType(zlog::LoggerType::LOGGER_SYNC);
+    builder->buildLoggerSink<zlog::FileSink>("./logfile/test.log");
+    builder->buildLoggerSink<zlog::StdOutSink>();
+    zlog::Logger::ptr logger = builder->build();
     logger->debug(__FILE__, __LINE__, "%s", "测试日志");
     logger->info(__FILE__, __LINE__, "%s", "测试日志");
     logger->warn(__FILE__, __LINE__, "%s", "测试日志");
@@ -125,7 +127,7 @@ void test7()
         return;
     }
     ifs.close();
-    mylog::Buffer buffer;
+    zlog::Buffer buffer;
     for (int i = 0; i < body.size(); i++)
     {
         buffer.push(&body[i], 1);
@@ -143,15 +145,15 @@ void test7()
 // 测试异步日志器
 void test8()
 {
-    std::unique_ptr<mylog::LocalLoggerBuilder> builder(new mylog::LocalLoggerBuilder());
+    std::unique_ptr<zlog::LocalLoggerBuilder> builder(new zlog::LocalLoggerBuilder());
     builder->buildLoggerName("async_logger");
-    builder->buildLoggerLevel(mylog::LogLevel::value::WARNING);
+    builder->buildLoggerLevel(zlog::LogLevel::value::WARNING);
     builder->buildLoggerFormmater("[%c][%f:%l]%T%m%n");
-    builder->buildLoggerType(mylog::LoggerType::LOGGER_ASYNC);
+    builder->buildLoggerType(zlog::LoggerType::LOGGER_ASYNC);
     builder->buildEnalleUnSafe();
-    builder->buildLoggerSink<mylog::FileSink>("./logfile/async.log");
-    builder->buildLoggerSink<mylog::StdOutSink>();
-    mylog::Logger::ptr logger = builder->build();
+    builder->buildLoggerSink<zlog::FileSink>("./logfile/async.log");
+    builder->buildLoggerSink<zlog::StdOutSink>();
+    zlog::Logger::ptr logger = builder->build();
     logger->debug("%s", "测试日志");
     logger->info("%s", "测试日志");
     logger->warn("%s", "测试日志");
@@ -168,7 +170,7 @@ void test8()
 // 测试全局日志器建造者
 void test9()
 {
-    mylog::Logger::ptr logger = mylog::LoggerManager::getInstance().getLogger("async_logger");
+    zlog::Logger::ptr logger = zlog::LoggerManager::getInstance().getLogger("async_logger");
     logger->debug("%s", "测试日志");
     logger->info("%s", "测试日志");
     logger->warn("%s", "测试日志");
@@ -207,15 +209,15 @@ int main()
     // test6();
     // test7();
     // test8();
-    // std::unique_ptr<mylog::GlobalLoggerBuilder> builder(new mylog::GlobalLoggerBuilder());
+    // std::unique_ptr<zlog::GlobalLoggerBuilder> builder(new zlog::GlobalLoggerBuilder());
     // builder->buildLoggerName("async_logger");
-    // builder->buildLoggerLevel(mylog::LogLevel::value::WARNING);
+    // builder->buildLoggerLevel(zlog::LogLevel::value::WARNING);
     // builder->buildLoggerFormmater("[%c][%f:%l]%T%m%n");
-    // builder->buildLoggerType(mylog::LoggerType::LOGGER_ASYNC);
+    // builder->buildLoggerType(zlog::LoggerType::LOGGER_ASYNC);
     // builder->buildEnalleUnSafe();
-    // builder->buildLoggerSink<mylog::FileSink>("./logfile/async.log");
-    // builder->buildLoggerSink<mylog::StdOutSink>();
-    // mylog::Logger::ptr logger = builder->build();
+    // builder->buildLoggerSink<zlog::FileSink>("./logfile/async.log");
+    // builder->buildLoggerSink<zlog::StdOutSink>();
+    // zlog::Logger::ptr logger = builder->build();
     // test9();
     test10();
     return 0;

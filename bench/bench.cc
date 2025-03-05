@@ -1,8 +1,8 @@
-#include "../mylog/log.h"
+#include "../zlog/zlog.h"
 void bench(const std::string &loggerName, size_t threadNum, size_t messNum, size_t messLen)
 {
     // 1. 获取日志器
-    mylog::Logger::ptr logger = mylog::getLogger(loggerName);
+    zlog::Logger::ptr logger = zlog::getLogger(loggerName);
     if (logger == nullptr)
     {
         return;
@@ -60,23 +60,23 @@ void bench(const std::string &loggerName, size_t threadNum, size_t messNum, size
 
 void syncBench(size_t threadNum)
 {
-    std::unique_ptr<mylog::GlobalLoggerBuilder> builder(new mylog::GlobalLoggerBuilder());
+    std::unique_ptr<zlog::GlobalLoggerBuilder> builder(new zlog::GlobalLoggerBuilder());
     builder->buildLoggerName("sync_logger");
     builder->buildLoggerFormmater("%m%n ");
-    builder->buildLoggerType(mylog::LoggerType::LOGGER_SYNC);
-    builder->buildLoggerSink<mylog::FileSink>("./logfile/sync.log");
-    mylog::Logger::ptr logger = builder->build();
+    builder->buildLoggerType(zlog::LoggerType::LOGGER_SYNC);
+    builder->buildLoggerSink<zlog::FileSink>("./logfile/sync.log");
+    zlog::Logger::ptr logger = builder->build();
     bench("sync_logger", threadNum, 1000000, 100);
 }
 void asyncBench(size_t threadNum)
 {
-    std::unique_ptr<mylog::GlobalLoggerBuilder> builder(new mylog::GlobalLoggerBuilder());
+    std::unique_ptr<zlog::GlobalLoggerBuilder> builder(new zlog::GlobalLoggerBuilder());
     builder->buildLoggerName("async_logger");
     builder->buildLoggerFormmater("%m%n ");
-    builder->buildLoggerType(mylog::LoggerType::LOGGER_ASYNC);
+    builder->buildLoggerType(zlog::LoggerType::LOGGER_ASYNC);
     builder->buildEnalleUnSafe();
-    builder->buildLoggerSink<mylog::FileSink>("./logfile/async.log");
-    mylog::Logger::ptr logger = builder->build();
+    builder->buildLoggerSink<zlog::FileSink>("./logfile/async.log");
+    zlog::Logger::ptr logger = builder->build();
     bench("async_logger", threadNum, 1000000, 100);
 }
 

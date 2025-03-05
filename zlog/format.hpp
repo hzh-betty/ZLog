@@ -5,7 +5,7 @@
 #include <vector>
 #include <sstream>
 #include <cassert>
-namespace mylog
+namespace zlog
 {
     /*抽象格式基类*/
     class FormatItem

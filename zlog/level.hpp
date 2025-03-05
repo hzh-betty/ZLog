@@ -7,7 +7,7 @@
     2. 提供转换接口：日志等级转换为字符串
 */
 
-namespace mylog
+namespace zlog
 {
     class LogLevel
     {

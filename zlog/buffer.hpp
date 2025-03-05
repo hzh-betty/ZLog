@@ -3,7 +3,7 @@
 #include <cassert>
 #include <vector>
 #include <algorithm>
-namespace mylog
+namespace zlog
 {
     static constexpr size_t DEFAULT_BUFFER_SIZE = 1024 * 1024 * 1;
     static constexpr size_t THRESHOLD_BUFFER_SIZE = 1024 * 1024 * 8;

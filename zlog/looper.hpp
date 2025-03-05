@@ -7,7 +7,7 @@
 #include <memory>
 #include <atomic>
 
-namespace mylog
+namespace zlog
 {
     enum class AsyncType
     {
