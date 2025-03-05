@@ -158,8 +158,8 @@ void loggerTest3()
 }
 int main(int argc, char *argv[])
 {
-    // loggerTest1();
+    loggerTest1();
     //loggerTest2();
-    loggerTest3();
+    //loggerTest3();
     return 0;
 }

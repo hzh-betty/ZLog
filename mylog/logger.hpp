@@ -308,6 +308,7 @@ namespace mylog
         }
     };
 
+    /*全局日志管理器*/
     class LoggerManager
     {
     public:
@@ -344,9 +345,9 @@ namespace mylog
             }
             return iter->second;
         }
-        
+
         Logger::ptr rootLogger()
-        { 
+        {
             return rootLogger_;
         }
 
@@ -382,7 +383,7 @@ namespace mylog
             {
                 buildLoggerSink<StdOutSink>();
             }
-            
+
             Logger::ptr logger;
             if (loggerType_ == LoggerType::LOGGER_ASYNC)
             {

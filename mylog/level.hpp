@@ -22,6 +22,7 @@ namespace mylog
             FATAL,
             OFF,
         };
+        
         static std::string toString(LogLevel::value level)
         {
             switch (level)
