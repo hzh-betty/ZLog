@@ -47,7 +47,7 @@ namespace zlog
             va_start(ap, fmt);
             char *res = nullptr;
 #ifdef _WIN32
-            int len = _vscprintf(fmt.c_str(), ap);
+            size_t len = _vscprintf(fmt.c_str(), ap);
             if (len < 0)
             { /* 错误处理 */
                 std::cerr << "_vscprintf fail" << std::endl;
@@ -282,7 +282,8 @@ namespace zlog
         }
         void buildEnalleUnSafe()
         {
-            if(loggerType_ == LoggerType::LOGGER_SYNC) return ;
+            if (loggerType_ == LoggerType::LOGGER_SYNC)
+                return;
             looperType_ = AsyncType::ASYNC_UNSAFE;
         }
         void buildLoggerName(const std::string &loggerName)
@@ -343,7 +344,6 @@ namespace zlog
             {
                 return std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_);
             }
-
             return std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
         }
     };
@@ -433,8 +433,10 @@ namespace zlog
             {
                 logger = std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_);
             }
-
-            logger = std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
+            else
+            {
+                logger = std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
+            }
             LoggerManager::getInstance().addLogger(logger);
             return logger;
         }
