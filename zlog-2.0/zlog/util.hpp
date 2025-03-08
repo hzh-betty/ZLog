@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include<atomic>
 #ifdef _WIN32
 #include <direct.h>
 #else
@@ -16,6 +17,9 @@ namespace zlog
         1. 关于日期的常用接口
         2. 关于文件的常用接口
     */
+    thread_local int id = -1;      // 线程标识符，不是TID
+    std::atomic<int> threadNum(0); // 线程数
+    
     class Date
     {
     public:

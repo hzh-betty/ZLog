@@ -13,6 +13,7 @@
 #include "message.hpp"
 #include "sink.hpp"
 #include "looper.hpp"
+#include "objectpool.hpp"
 #include <unordered_map>
 #include <mutex>
 #include <atomic>
@@ -36,12 +37,17 @@ namespace zlog
         {
             return loggerName_;
         }
-        void debug(std::string &&file, size_t line, const char*fmt, ...)
+        void debug(std::string &&file, size_t line, const char *fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::DEBUG < limitLevel_)
                 return;
 
+            if (id == -1)
+            {
+                id = threadNum.load();
+                ++threadNum;
+            }
             // 2. 提取不定参数
             va_list ap;
             va_start(ap, fmt);
@@ -65,11 +71,17 @@ namespace zlog
             free(res);
         }
 
-        void info(std::string &&file, size_t line, const char*fmt, ...)
+        void info(std::string &&file, size_t line, const char *fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::INFO < limitLevel_)
                 return;
+
+            if (id == -1)
+            {
+                id = threadNum.load();
+                ++threadNum;
+            }
 
             // 2. 提取不定参数
             va_list ap;
@@ -94,12 +106,17 @@ namespace zlog
             free(res);
         }
 
-        void warn(std::string &&file, size_t line, const char*fmt, ...)
+        void warn(std::string &&file, size_t line, const char *fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::WARNING < limitLevel_)
                 return;
 
+            if (id == -1)
+            {
+                id = threadNum.load();
+                ++threadNum;
+            }
             // 2. 提取不定参数
             va_list ap;
             va_start(ap, fmt);
@@ -123,11 +140,17 @@ namespace zlog
             free(res);
         }
 
-        void error(std::string &&file, size_t line, const char*fmt, ...)
+        void error(std::string &&file, size_t line, const char *fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::ERROR < limitLevel_)
                 return;
+
+            if (id == -1)
+            {
+                id = threadNum.load();
+                ++threadNum;
+            }
 
             // 2. 提取不定参数
             va_list ap;
@@ -152,11 +175,17 @@ namespace zlog
             free(res);
         }
 
-        void fatal(std::string &&file, size_t line, const char*fmt, ...)
+        void fatal(std::string &&file, size_t line, const char *fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::FATAL < limitLevel_)
                 return;
+
+            if (id == -1)
+            {
+                id = threadNum.load();
+                ++threadNum;
+            }
 
             // 2. 提取不定参数
             va_list ap;
@@ -182,19 +211,22 @@ namespace zlog
         }
 
     protected:
-        void serialize(LogLevel::value level, std::string &&file, size_t line, std::string&&res)
+        void serialize(LogLevel::value level, std::string &&file, size_t line, std::string &&res)
         {
             // 3. 构建LogMessage对象
-            LogMessage msg(level, std::move(file), line, std::move(res), loggerName_);
+            size_t threId = id % DEFAULT_POOL_NUM;
+            LogMessage *msg = MessagePool::getInstance().alloc(threId, level, std::move(file), line, std::move(res), loggerName_);
 
             // 4.格式化
             thread_local std::stringstream ss;
             thread_local std::string str;
             ss.str(""); // 每次初始化为空
             ss.clear(); // 重置状态
-            formmatter_->format(ss, msg);
+            formmatter_->format(ss, *msg);
             str = std::move(ss.str());
+
             // 5. 日志落地
+            MessagePool::getInstance().dealloc(msg, threId);
             log(str.c_str(), str.size());
         }
         virtual void log(const char *data, size_t len) = 0;
