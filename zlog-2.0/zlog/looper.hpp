@@ -46,7 +46,7 @@ namespace zlog
         void stop()
         {
             stop_ = true;
-            condCon_.notify_one();
+            condCon_.notify_all();
             thread_.join(); // 等待工作线程退出
         }
 

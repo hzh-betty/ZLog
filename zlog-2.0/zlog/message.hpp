@@ -26,10 +26,10 @@ namespace zlog
 
         LogMessage(LogLevel::value level,
                    std::string &&file, size_t line,
-                   const std::string &payload, const std::string &logger)
+                   std::string &&payload, const std::string &logger)
             : curtime_(Date::getCurrentTime()), level_(level),
               file_(std::move(file)), line_(line), tid_(std::this_thread::get_id()),
-              payload_(payload), logger_(logger)
+              payload_(std::move(payload)), logger_(logger)
         {
         }
     };

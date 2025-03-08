@@ -21,7 +21,7 @@ namespace zlog
     public:
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            out << msg.payload_;
+            out.write(msg.payload_.c_str(), msg.payload_.size());
         }
     };
 
@@ -30,7 +30,8 @@ namespace zlog
     public:
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            out << LogLevel::toString(msg.level_);
+            std::string levelstr = LogLevel::toString(msg.level_);
+            out.write(levelstr.c_str(), levelstr.size());
         }
     };
 
@@ -44,8 +45,8 @@ namespace zlog
         }
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            static thread_local char cached_time[30] = {0}; // 线程局部缓存
-            static thread_local time_t last_cached = 0;     // 最后缓存时间
+            thread_local std::string cached_time; // 线程局部缓存
+            thread_local time_t last_cached = 0;  // 最后缓存时间
 
             if (last_cached != msg.curtime_)
             {
@@ -56,10 +57,10 @@ namespace zlog
 #else
                 localtime_r(&msg.curtime_, &lt);
 #endif
-                strftime(cached_time, sizeof(cached_time), timeFormat_.c_str(), &lt); // 使用转换后的tm结构体
+                strftime((char *)cached_time.c_str(), cached_time.size(), timeFormat_.c_str(), &lt); // 使用转换后的tm结构体
                 last_cached = msg.curtime_;
             }
-            out << cached_time;
+            out.write(cached_time.c_str(), cached_time.size());
         }
 
     protected:
@@ -71,7 +72,7 @@ namespace zlog
     public:
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            out << msg.file_;
+            out.write(msg.file_.c_str(), msg.file_.size());
         }
     };
 
@@ -98,7 +99,7 @@ namespace zlog
     public:
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            out << msg.logger_;
+            out.write(msg.logger_.c_str(), msg.logger_.size());
         }
     };
 
@@ -107,7 +108,7 @@ namespace zlog
     public:
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            out << "\t";
+            out.write("\t", 1);
         }
     };
 
@@ -116,7 +117,7 @@ namespace zlog
     public:
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            out << "\n";
+            out.write("\n", 1);
         }
     };
 
@@ -129,7 +130,7 @@ namespace zlog
         }
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            out << str_;
+            out.write(str_.c_str(), str_.size());
         }
 
     protected:
@@ -171,7 +172,9 @@ namespace zlog
 
         std::string format(const LogMessage &msg)
         {
-            std::stringstream ss;
+            thread_local std::stringstream ss;
+            ss.str(""); // 每次初始化为空
+            ss.clear(); // 重置状态
             for (auto &item : items_)
             {
                 item->format(ss, msg);

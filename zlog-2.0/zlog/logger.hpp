@@ -36,7 +36,7 @@ namespace zlog
         {
             return loggerName_;
         }
-        void debug(std::string &&file, size_t line, const std::string fmt, ...)
+        void debug(std::string &&file, size_t line, const char*fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::DEBUG < limitLevel_)
@@ -47,25 +47,25 @@ namespace zlog
             va_start(ap, fmt);
             char *res = nullptr;
 #ifdef _WIN32
-            int len = _vscprintf(fmt.c_str(), ap);
+            size_t len = _vscprintf(fmt, ap);
             if (len < 0)
             { /* 错误处理 */
                 std::cerr << "_vscprintf fail" << std::endl;
             }
             res = static_cast<char *>(malloc(len + 1));
-            vsnprintf_s(res, len + 1, _TRUNCATE, fmt.c_str(), ap);
+            vsnprintf_s(res, len + 1, _TRUNCATE, fmt, ap);
 #else
-            if (vasprintf(&res, fmt.c_str(), ap) < 0)
+            if (vasprintf(&res, fmt, ap) < 0)
             {
                 std::cerr << "vasprintf fail" << std::endl;
             }
 #endif
             va_end(ap);
-            serialize(LogLevel::value::DEBUG,  std::move(file), line, res);
+            serialize(LogLevel::value::DEBUG, std::move(file), line, res);
             free(res);
         }
 
-        void info(std::string &&file, size_t line, const std::string fmt, ...)
+        void info(std::string &&file, size_t line, const char*fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::INFO < limitLevel_)
@@ -76,25 +76,25 @@ namespace zlog
             va_start(ap, fmt);
             char *res = nullptr;
 #ifdef _WIN32
-            int len = _vscprintf(fmt.c_str(), ap);
+            size_t len = _vscprintf(fmt, ap);
             if (len < 0)
             { /* 错误处理 */
                 std::cerr << "_vscprintf fail" << std::endl;
             }
             res = static_cast<char *>(malloc(len + 1));
-            vsnprintf_s(res, len + 1, _TRUNCATE, fmt.c_str(), ap);
+            vsnprintf_s(res, len + 1, _TRUNCATE, fmt, ap);
 #else
-            if (vasprintf(&res, fmt.c_str(), ap) < 0)
+            if (vasprintf(&res, fmt, ap) < 0)
             {
                 std::cerr << "vasprintf fail" << std::endl;
             }
 #endif
             va_end(ap);
-            serialize(LogLevel::value::INFO,  std::move(file), line, res);
+            serialize(LogLevel::value::INFO, std::move(file), line, std::move(res));
             free(res);
         }
 
-        void warn(std::string &&file, size_t line, const std::string fmt, ...)
+        void warn(std::string &&file, size_t line, const char*fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::WARNING < limitLevel_)
@@ -105,25 +105,25 @@ namespace zlog
             va_start(ap, fmt);
             char *res = nullptr;
 #ifdef _WIN32
-            int len = _vscprintf(fmt.c_str(), ap);
+            size_t len = _vscprintf(fmt, ap);
             if (len < 0)
             { /* 错误处理 */
                 std::cerr << "_vscprintf fail" << std::endl;
             }
             res = static_cast<char *>(malloc(len + 1));
-            vsnprintf_s(res, len + 1, _TRUNCATE, fmt.c_str(), ap);
+            vsnprintf_s(res, len + 1, _TRUNCATE, fmt, ap);
 #else
-            if (vasprintf(&res, fmt.c_str(), ap) < 0)
+            if (vasprintf(&res, fmt, ap) < 0)
             {
                 std::cerr << "vasprintf fail" << std::endl;
             }
 #endif
             va_end(ap);
-            serialize(LogLevel::value::WARNING,  std::move(file), line, res);
+            serialize(LogLevel::value::WARNING, std::move(file), line, std::move(res));
             free(res);
         }
 
-        void error(std::string &&file, size_t line, const std::string fmt, ...)
+        void error(std::string &&file, size_t line, const char*fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::ERROR < limitLevel_)
@@ -134,25 +134,25 @@ namespace zlog
             va_start(ap, fmt);
             char *res = nullptr;
 #ifdef _WIN32
-            int len = _vscprintf(fmt.c_str(), ap);
+            size_t len = _vscprintf(fmt, ap);
             if (len < 0)
             { /* 错误处理 */
                 std::cerr << "_vscprintf fail" << std::endl;
             }
             res = static_cast<char *>(malloc(len + 1));
-            vsnprintf_s(res, len + 1, _TRUNCATE, fmt.c_str(), ap);
+            vsnprintf_s(res, len + 1, _TRUNCATE, fmt, ap);
 #else
-            if (vasprintf(&res, fmt.c_str(), ap) < 0)
+            if (vasprintf(&res, fmt, ap) < 0)
             {
                 std::cerr << "vasprintf fail" << std::endl;
             }
 #endif
             va_end(ap);
-            serialize(LogLevel::value::ERROR, std::move(file), line, res);
+            serialize(LogLevel::value::ERROR, std::move(file), line, std::move(res));
             free(res);
         }
 
-        void fatal(std::string &&file, size_t line, const std::string fmt, ...)
+        void fatal(std::string &&file, size_t line, const char*fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::FATAL < limitLevel_)
@@ -163,36 +163,39 @@ namespace zlog
             va_start(ap, fmt);
             char *res = nullptr;
 #ifdef _WIN32
-            int len = _vscprintf(fmt.c_str(), ap);
+            size_t len = _vscprintf(fmt, ap);
             if (len < 0)
             { /* 错误处理 */
                 std::cerr << "_vscprintf fail" << std::endl;
             }
             res = static_cast<char *>(malloc(len + 1));
-            vsnprintf_s(res, len + 1, _TRUNCATE, fmt.c_str(), ap);
+            vsnprintf_s(res, len + 1, _TRUNCATE, fmt, ap);
 #else
-            if (vasprintf(&res, fmt.c_str(), ap) < 0)
+            if (vasprintf(&res, fmt, ap) < 0)
             {
                 std::cerr << "vasprintf fail" << std::endl;
             }
 #endif
             va_end(ap);
-            serialize(LogLevel::value::FATAL, std::move(file), line, res);
+            serialize(LogLevel::value::FATAL, std::move(file), line, std::move(res));
             free(res);
         }
 
     protected:
-        void serialize(LogLevel::value level, std::string &&file, size_t line, char *res)
+        void serialize(LogLevel::value level, std::string &&file, size_t line, std::string&&res)
         {
             // 3. 构建LogMessage对象
-            LogMessage msg(level, std::move(file), line, res, loggerName_);
+            LogMessage msg(level, std::move(file), line, std::move(res), loggerName_);
 
             // 4.格式化
-            std::stringstream ss;
+            thread_local std::stringstream ss;
+            thread_local std::string str;
+            ss.str(""); // 每次初始化为空
+            ss.clear(); // 重置状态
             formmatter_->format(ss, msg);
-
+            str = std::move(ss.str());
             // 5. 日志落地
-            log(ss.str().c_str(), ss.str().size());
+            log(str.c_str(), str.size());
         }
         virtual void log(const char *data, size_t len) = 0;
 
@@ -282,7 +285,8 @@ namespace zlog
         }
         void buildEnalleUnSafe()
         {
-            if(loggerType_ == LoggerType::LOGGER_SYNC) return ;
+            if (loggerType_ == LoggerType::LOGGER_SYNC)
+                return;
             looperType_ = AsyncType::ASYNC_UNSAFE;
         }
         void buildLoggerName(const std::string &loggerName)
@@ -343,7 +347,6 @@ namespace zlog
             {
                 return std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_);
             }
-
             return std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
         }
     };
@@ -433,8 +436,10 @@ namespace zlog
             {
                 logger = std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_);
             }
-
-            logger = std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
+            else
+            {
+                logger = std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
+            }
             LoggerManager::getInstance().addLogger(logger);
             return logger;
         }
