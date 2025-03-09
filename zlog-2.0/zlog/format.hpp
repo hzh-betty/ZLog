@@ -21,7 +21,7 @@ namespace zlog
     public:
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            out.write(msg.payload_.c_str(), msg.payload_.size());
+            out << msg.payload_;
         }
     };
 
@@ -45,20 +45,30 @@ namespace zlog
         }
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            thread_local std::string cached_time; // 线程局部缓存
-            thread_local time_t last_cached = 0;  // 最后缓存时间
+            thread_local std::string cached_time;
+            thread_local time_t last_cached = 0;
 
             if (last_cached != msg.curtime_)
             {
                 struct tm lt;
-                // Windows使用localtime_s，Linux使用localtime_r
 #ifdef _WIN32
                 localtime_s(&lt, &msg.curtime_);
 #else
                 localtime_r(&msg.curtime_, &lt);
 #endif
-                strftime((char *)cached_time.c_str(), cached_time.size(), timeFormat_.c_str(), &lt); // 使用转换后的tm结构体
-                last_cached = msg.curtime_;
+
+                // 使用临时缓冲区
+                char buffer[64];
+                size_t len = strftime(buffer, sizeof(buffer), timeFormat_.c_str(), &lt);
+                if (len > 0)
+                {
+                    cached_time.assign(buffer, len);
+                    last_cached = msg.curtime_;
+                }
+                else
+                {
+                    cached_time = "InvalidTime";
+                }
             }
             out.write(cached_time.c_str(), cached_time.size());
         }
@@ -72,7 +82,7 @@ namespace zlog
     public:
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            out.write(msg.file_.c_str(), msg.file_.size());
+            out << msg.file_;
         }
     };
 
@@ -99,7 +109,7 @@ namespace zlog
     public:
         void format(std::ostream &out, const LogMessage &msg) override
         {
-            out.write(msg.logger_.c_str(), msg.logger_.size());
+            out<<msg.loggerName_;
         }
     };
 

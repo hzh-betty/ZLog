@@ -147,12 +147,12 @@ namespace zlog
         }
 
         LogMessage *alloc(size_t id, LogLevel::value level,
-                          std::string &&file, size_t line,
-                          std::string &&payload, const std::string &loggername)
+            const char* file, size_t line,
+            const char* payload, const char*loggername)
         {
             LogMessage *ptr = messPool_[id]->alloc();
             // 定位new初始化
-            new (ptr) LogMessage(level, std::move(file), line, std::move(payload), loggername);
+            new (ptr) LogMessage(level, file, line, payload, loggername);
             return ptr;
         }
 

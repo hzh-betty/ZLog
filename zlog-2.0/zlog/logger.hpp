@@ -6,7 +6,6 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
-
 #include "util.hpp"
 #include "level.hpp"
 #include "format.hpp"
@@ -26,18 +25,18 @@ namespace zlog
     {
     public:
         using ptr = std::shared_ptr<Logger>;
-        Logger(const std::string &loggerName, LogLevel::value limitLevel,
+        Logger(const char*loggerName, LogLevel::value limitLevel,
                Formmatter::ptr &formmatter,
                std::vector<LogSink::ptr> &sinks) : loggerName_(loggerName),
                                                    limitLevel_(limitLevel), formmatter_(formmatter), sinks_(sinks.begin(), sinks.end())
         {
         }
 
-        const std::string &getName() const
+        const std::string getName() const
         {
-            return loggerName_;
+            return std::string(loggerName_);
         }
-        void debug(std::string &&file, size_t line, const char *fmt, ...)
+        void debug(const char* file, size_t line, const char *fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::DEBUG < limitLevel_)
@@ -67,11 +66,11 @@ namespace zlog
             }
 #endif
             va_end(ap);
-            serialize(LogLevel::value::DEBUG, std::move(file), line, res);
+            serialize(LogLevel::value::DEBUG, file, line, res);
             free(res);
         }
 
-        void info(std::string &&file, size_t line, const char *fmt, ...)
+        void info(const char* file, size_t line, const char *fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::INFO < limitLevel_)
@@ -102,11 +101,11 @@ namespace zlog
             }
 #endif
             va_end(ap);
-            serialize(LogLevel::value::INFO, std::move(file), line, std::move(res));
+            serialize(LogLevel::value::INFO, file, line, res);
             free(res);
         }
 
-        void warn(std::string &&file, size_t line, const char *fmt, ...)
+        void warn(const char* file, size_t line, const char *fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::WARNING < limitLevel_)
@@ -136,11 +135,11 @@ namespace zlog
             }
 #endif
             va_end(ap);
-            serialize(LogLevel::value::WARNING, std::move(file), line, std::move(res));
+            serialize(LogLevel::value::WARNING, file, line, res);
             free(res);
         }
 
-        void error(std::string &&file, size_t line, const char *fmt, ...)
+        void error(const char* file, size_t line, const char *fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::ERROR < limitLevel_)
@@ -171,11 +170,11 @@ namespace zlog
             }
 #endif
             va_end(ap);
-            serialize(LogLevel::value::ERROR, std::move(file), line, std::move(res));
+            serialize(LogLevel::value::ERROR, file, line, res);
             free(res);
         }
 
-        void fatal(std::string &&file, size_t line, const char *fmt, ...)
+        void fatal(const char* file, size_t line, const char *fmt, ...)
         {
             // 1.判断消息级别
             if (LogLevel::value::FATAL < limitLevel_)
@@ -206,16 +205,16 @@ namespace zlog
             }
 #endif
             va_end(ap);
-            serialize(LogLevel::value::FATAL, std::move(file), line, std::move(res));
+            serialize(LogLevel::value::FATAL, file, line, res);
             free(res);
         }
 
     protected:
-        void serialize(LogLevel::value level, std::string &&file, size_t line, std::string &&res)
+        void serialize(LogLevel::value level, const char* file, size_t line, const char*res)
         {
             // 3. 构建LogMessage对象
             size_t threId = id % DEFAULT_POOL_NUM;
-            LogMessage *msg = MessagePool::getInstance().alloc(threId, level, std::move(file), line, std::move(res), loggerName_);
+            LogMessage *msg = MessagePool::getInstance().alloc(threId, level, file, line, res, loggerName_);
 
             // 4.格式化
             thread_local std::stringstream ss;
@@ -233,7 +232,7 @@ namespace zlog
 
     protected:
         std::mutex mutex_;
-        std::string loggerName_;
+        const char* loggerName_;
         std::atomic<LogLevel::value> limitLevel_;
         Formmatter::ptr formmatter_;
         std::vector<LogSink::ptr> sinks_;
@@ -243,7 +242,7 @@ namespace zlog
     class SyncLogger : public Logger
     {
     public:
-        SyncLogger(const std::string &loggerName, LogLevel::value limitLevel,
+        SyncLogger(const char*loggerName, LogLevel::value limitLevel,
                    Formmatter::ptr &formmatter,
                    std::vector<LogSink::ptr> &sinks) : Logger(loggerName, limitLevel, formmatter, sinks)
         {
@@ -266,7 +265,7 @@ namespace zlog
     class AsyncLogger : public Logger
     {
     public:
-        AsyncLogger(const std::string &loggerName, LogLevel::value limitLevel,
+        AsyncLogger(const char*loggerName, LogLevel::value limitLevel,
                     Formmatter::ptr &formmatter,
                     std::vector<LogSink::ptr> &sinks, AsyncType looperType) : Logger(loggerName, limitLevel, formmatter, sinks),
                                                                               looper_(std::make_shared<AsyncLooper>(std::bind(&AsyncLogger::reLog,
@@ -321,7 +320,7 @@ namespace zlog
                 return;
             looperType_ = AsyncType::ASYNC_UNSAFE;
         }
-        void buildLoggerName(const std::string &loggerName)
+        void buildLoggerName(const char*loggerName)
         {
             loggerName_ = loggerName;
         }
@@ -346,7 +345,7 @@ namespace zlog
 
     protected:
         LoggerType loggerType_;
-        std::string loggerName_;
+        const char* loggerName_ = nullptr;
         LogLevel::value limitLevel_;
         Formmatter::ptr formmatter_;
         std::vector<LogSink::ptr> sinks_;
@@ -360,7 +359,7 @@ namespace zlog
         Logger::ptr build() override
         {
             // 必须有日志器名称
-            if (loggerName_.empty())
+            if (loggerName_ == nullptr)
             {
                 return Logger::ptr();
             }
@@ -448,7 +447,7 @@ namespace zlog
         Logger::ptr build() override
         {
             // 必须要有日志器名
-            if (loggerName_.empty())
+            if (loggerName_ == nullptr)
             {
                 return Logger::ptr();
             }
