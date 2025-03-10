@@ -17,8 +17,6 @@ namespace zlog
         1. 关于日期的常用接口
         2. 关于文件的常用接口
     */
-    thread_local int id = -1;      // 线程标识符，不是TID
-    std::atomic<int> threadNum(0); // 线程数
     
     class Date
     {
@@ -56,7 +54,7 @@ namespace zlog
         }
 
         /*指定路径下创建文件夹*/
-        static void createDiretory(const std::string &pathname)
+        static void createDirectory(const std::string &pathname)
         {
             // 循环创建目录(mkdir)
             // ./abc/bcd/efg

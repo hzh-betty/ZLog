@@ -5,6 +5,9 @@
 #include <vector>
 #include <sstream>
 #include <cassert>
+#include <fmt/core.h>
+#include <fmt/color.h>
+
 namespace zlog
 {
     /*抽象格式基类*/
@@ -12,26 +15,47 @@ namespace zlog
     {
     public:
         using prt = std::shared_ptr<FormatItem>;
-        virtual void format(std::ostream &out, const LogMessage &msg) = 0;
+        virtual void format(fmt::memory_buffer &buffer, const LogMessage &msg) = 0;
     };
 
     /*派生格式化子类--消息，等级，时间，文件名，行号，线程ID，日志器名，制表符，换行，其他*/
     class MessageFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << msg.payload_;
+            fmt::format_to(std::back_inserter(buffer), "{}", msg.payload_);
         }
     };
 
     class LevelFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
             std::string levelstr = LogLevel::toString(msg.level_);
-            out.write(levelstr.c_str(), levelstr.size());
+            fmt::text_style ts;
+            switch (msg.level_)
+            {
+            case LogLevel::value::DEBUG:
+                ts = fg(fmt::color::gray);
+                break;
+            case LogLevel::value::INFO:
+                ts = fg(fmt::color::green);
+                break;
+            case LogLevel::value::WARNING:
+                ts = fg(fmt::color::yellow);
+                break;
+            case LogLevel::value::ERROR:
+                ts = fg(fmt::color::red);
+                break;
+            case LogLevel::value::FATAL:
+                ts = fg(fmt::color::purple) | fmt::emphasis::bold;
+                break;
+            default:
+                break;
+            }
+            fmt::format_to(std::back_inserter(buffer), ts, "{}", levelstr);
         }
     };
 
@@ -43,7 +67,7 @@ namespace zlog
             : timeFormat_(timeFormat)
         {
         }
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
             thread_local std::string cached_time;
             thread_local time_t last_cached = 0;
@@ -70,7 +94,7 @@ namespace zlog
                     cached_time = "InvalidTime";
                 }
             }
-            out.write(cached_time.c_str(), cached_time.size());
+            fmt::format_to(std::back_inserter(buffer), "{}", cached_time);
         }
 
     protected:
@@ -80,54 +104,54 @@ namespace zlog
     class FileFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << msg.file_;
+            fmt::format_to(std::back_inserter(buffer), "{}", msg.file_);
         }
     };
 
     class LineFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << msg.line_;
+            fmt::format_to(std::back_inserter(buffer), "{}", msg.line_);
         }
     };
 
     class TreadIdFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << msg.tid_;
+            fmt::format_to(std::back_inserter(buffer), "{}", msg.line_);
         }
     };
 
     class LoggerFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out<<msg.loggerName_;
+            fmt::format_to(std::back_inserter(buffer), "{}", msg.loggerName_);
         }
     };
 
     class TabFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out.write("\t", 1);
+            fmt::format_to(std::back_inserter(buffer), "{}", "\t");
         }
     };
 
     class NLineFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out.write("\n", 1);
+            fmt::format_to(std::back_inserter(buffer), "{}", "\n");
         }
     };
 
@@ -138,9 +162,9 @@ namespace zlog
             : str_(str)
         {
         }
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out.write(str_.c_str(), str_.size());
+            fmt::format_to(std::back_inserter(buffer), "{}", str_);
         }
 
     protected:
@@ -172,24 +196,23 @@ namespace zlog
             }
         }
 
-        void format(std::ostream &out, const LogMessage &msg)
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg)
         {
             for (auto &item : items_)
             {
-                item->format(out, msg);
+                item->format(buffer, msg);
             }
         }
 
         std::string format(const LogMessage &msg)
         {
-            thread_local std::stringstream ss;
-            ss.str(""); // 每次初始化为空
-            ss.clear(); // 重置状态
+            thread_local fmt::memory_buffer buffer;
+            buffer.clear();
             for (auto &item : items_)
             {
-                item->format(ss, msg);
+                item->format(buffer, msg);
             }
-            return ss.str();
+            return fmt::to_string(buffer);
         }
 
     protected:

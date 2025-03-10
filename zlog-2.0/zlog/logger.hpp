@@ -16,8 +16,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <atomic>
-#include <cstdarg>
-#include <cstdio>
+#include <fmt/format.h>
 
 namespace zlog
 {
@@ -25,7 +24,7 @@ namespace zlog
     {
     public:
         using ptr = std::shared_ptr<Logger>;
-        Logger(const char*loggerName, LogLevel::value limitLevel,
+        Logger(const char *loggerName, LogLevel::value limitLevel,
                Formmatter::ptr &formmatter,
                std::vector<LogSink::ptr> &sinks) : loggerName_(loggerName),
                                                    limitLevel_(limitLevel), formmatter_(formmatter), sinks_(sinks.begin(), sinks.end())
@@ -36,193 +35,59 @@ namespace zlog
         {
             return std::string(loggerName_);
         }
-        void debug(const char* file, size_t line, const char *fmt, ...)
-        {
-            // 1.判断消息级别
-            if (LogLevel::value::DEBUG < limitLevel_)
-                return;
 
-            if (id == -1)
-            {
-                id = threadNum.load();
-                ++threadNum;
-            }
-            // 2. 提取不定参数
-            va_list ap;
-            va_start(ap, fmt);
-            char *res = nullptr;
-#ifdef _WIN32
-            size_t len = _vscprintf(fmt, ap);
-            if (len < 0)
-            { /* 错误处理 */
-                std::cerr << "_vscprintf fail" << std::endl;
-            }
-            res = static_cast<char *>(malloc(len + 1));
-            vsnprintf_s(res, len + 1, _TRUNCATE, fmt, ap);
-#else
-            if (vasprintf(&res, fmt, ap) < 0)
-            {
-                std::cerr << "vasprintf fail" << std::endl;
-            }
-#endif
-            va_end(ap);
-            serialize(LogLevel::value::DEBUG, file, line, res);
-            free(res);
+        template <typename... Args>
+        void debug(const char *file, size_t line, const char *fmt, Args &&...args)
+        {
+            logImpl(LogLevel::value::DEBUG, file, line, fmt, std::forward<Args>(args)...);
         }
 
-        void info(const char* file, size_t line, const char *fmt, ...)
+        template <typename... Args>
+        void info(const char *file, size_t line, const char *fmt, Args &&...args)
         {
-            // 1.判断消息级别
-            if (LogLevel::value::INFO < limitLevel_)
-                return;
-
-            if (id == -1)
-            {
-                id = threadNum.load();
-                ++threadNum;
-            }
-
-            // 2. 提取不定参数
-            va_list ap;
-            va_start(ap, fmt);
-            char *res = nullptr;
-#ifdef _WIN32
-            size_t len = _vscprintf(fmt, ap);
-            if (len < 0)
-            { /* 错误处理 */
-                std::cerr << "_vscprintf fail" << std::endl;
-            }
-            res = static_cast<char *>(malloc(len + 1));
-            vsnprintf_s(res, len + 1, _TRUNCATE, fmt, ap);
-#else
-            if (vasprintf(&res, fmt, ap) < 0)
-            {
-                std::cerr << "vasprintf fail" << std::endl;
-            }
-#endif
-            va_end(ap);
-            serialize(LogLevel::value::INFO, file, line, res);
-            free(res);
+            logImpl(LogLevel::value::INFO, file, line, fmt, std::forward<Args>(args)...);
         }
 
-        void warn(const char* file, size_t line, const char *fmt, ...)
+        template <typename... Args>
+        void warn(const char *file, size_t line, const char *fmt, Args &&...args)
         {
-            // 1.判断消息级别
-            if (LogLevel::value::WARNING < limitLevel_)
-                return;
-
-            if (id == -1)
-            {
-                id = threadNum.load();
-                ++threadNum;
-            }
-            // 2. 提取不定参数
-            va_list ap;
-            va_start(ap, fmt);
-            char *res = nullptr;
-#ifdef _WIN32
-            size_t len = _vscprintf(fmt, ap);
-            if (len < 0)
-            { /* 错误处理 */
-                std::cerr << "_vscprintf fail" << std::endl;
-            }
-            res = static_cast<char *>(malloc(len + 1));
-            vsnprintf_s(res, len + 1, _TRUNCATE, fmt, ap);
-#else
-            if (vasprintf(&res, fmt, ap) < 0)
-            {
-                std::cerr << "vasprintf fail" << std::endl;
-            }
-#endif
-            va_end(ap);
-            serialize(LogLevel::value::WARNING, file, line, res);
-            free(res);
+            logImpl(LogLevel::value::WARNING, file, line, fmt, std::forward<Args>(args)...);
         }
 
-        void error(const char* file, size_t line, const char *fmt, ...)
+        template <typename... Args>
+        void error(const char *file, size_t line, const char *fmt, Args &&...args)
         {
-            // 1.判断消息级别
-            if (LogLevel::value::ERROR < limitLevel_)
-                return;
-
-            if (id == -1)
-            {
-                id = threadNum.load();
-                ++threadNum;
-            }
-
-            // 2. 提取不定参数
-            va_list ap;
-            va_start(ap, fmt);
-            char *res = nullptr;
-#ifdef _WIN32
-            size_t len = _vscprintf(fmt, ap);
-            if (len < 0)
-            { /* 错误处理 */
-                std::cerr << "_vscprintf fail" << std::endl;
-            }
-            res = static_cast<char *>(malloc(len + 1));
-            vsnprintf_s(res, len + 1, _TRUNCATE, fmt, ap);
-#else
-            if (vasprintf(&res, fmt, ap) < 0)
-            {
-                std::cerr << "vasprintf fail" << std::endl;
-            }
-#endif
-            va_end(ap);
-            serialize(LogLevel::value::ERROR, file, line, res);
-            free(res);
+            logImpl(LogLevel::value::ERROR, file, line, fmt, std::forward<Args>(args)...);
         }
 
-        void fatal(const char* file, size_t line, const char *fmt, ...)
+        template <typename... Args>
+        void fatal(const char *file, size_t line, const char *fmt, Args &&...args)
         {
-            // 1.判断消息级别
-            if (LogLevel::value::FATAL < limitLevel_)
-                return;
-
-            if (id == -1)
-            {
-                id = threadNum.load();
-                ++threadNum;
-            }
-
-            // 2. 提取不定参数
-            va_list ap;
-            va_start(ap, fmt);
-            char *res = nullptr;
-#ifdef _WIN32
-            size_t len = _vscprintf(fmt, ap);
-            if (len < 0)
-            { /* 错误处理 */
-                std::cerr << "_vscprintf fail" << std::endl;
-            }
-            res = static_cast<char *>(malloc(len + 1));
-            vsnprintf_s(res, len + 1, _TRUNCATE, fmt, ap);
-#else
-            if (vasprintf(&res, fmt, ap) < 0)
-            {
-                std::cerr << "vasprintf fail" << std::endl;
-            }
-#endif
-            va_end(ap);
-            serialize(LogLevel::value::FATAL, file, line, res);
-            free(res);
+            logImpl(LogLevel::value::FATAL, file, line, fmt, std::forward<Args>(args)...);
         }
 
     protected:
-        void serialize(LogLevel::value level, const char* file, size_t line, const char*res)
+        template <typename... Args>
+        void logImpl(LogLevel::value level, const char *file, size_t line, const char *fmt, Args &&...args)
+        {
+            if (level < limitLevel_)
+                return;
+
+           thread_local std::string result;
+           result = fmt::vformat(fmt, fmt::make_format_args((args)...)); 
+           serialize(level, file, line, result.c_str());
+           result.clear();
+        }
+
+        void serialize(LogLevel::value level, const char *file, size_t line, const char *data)
         {
             // 3. 构建LogMessage对象
-            size_t threId = id % DEFAULT_POOL_NUM;
-            LogMessage *msg = MessagePool::getInstance().alloc(threId, level, file, line, res, loggerName_);
+            size_t threId = line % DEFAULT_POOL_NUM;
+            LogMessage *msg = MessagePool::getInstance().alloc(threId, level, file, line, data, loggerName_);
 
             // 4.格式化
-            thread_local std::stringstream ss;
             thread_local std::string str;
-            ss.str(""); // 每次初始化为空
-            ss.clear(); // 重置状态
-            formmatter_->format(ss, *msg);
-            str = std::move(ss.str());
+            str = std::move(formmatter_->format(*msg));
 
             // 5. 日志落地
             MessagePool::getInstance().dealloc(msg, threId);
@@ -232,7 +97,7 @@ namespace zlog
 
     protected:
         std::mutex mutex_;
-        const char* loggerName_;
+        const char *loggerName_;
         std::atomic<LogLevel::value> limitLevel_;
         Formmatter::ptr formmatter_;
         std::vector<LogSink::ptr> sinks_;
@@ -242,7 +107,7 @@ namespace zlog
     class SyncLogger : public Logger
     {
     public:
-        SyncLogger(const char*loggerName, LogLevel::value limitLevel,
+        SyncLogger(const char *loggerName, LogLevel::value limitLevel,
                    Formmatter::ptr &formmatter,
                    std::vector<LogSink::ptr> &sinks) : Logger(loggerName, limitLevel, formmatter, sinks)
         {
@@ -265,7 +130,7 @@ namespace zlog
     class AsyncLogger : public Logger
     {
     public:
-        AsyncLogger(const char*loggerName, LogLevel::value limitLevel,
+        AsyncLogger(const char *loggerName, LogLevel::value limitLevel,
                     Formmatter::ptr &formmatter,
                     std::vector<LogSink::ptr> &sinks, AsyncType looperType) : Logger(loggerName, limitLevel, formmatter, sinks),
                                                                               looper_(std::make_shared<AsyncLooper>(std::bind(&AsyncLogger::reLog,
@@ -320,7 +185,7 @@ namespace zlog
                 return;
             looperType_ = AsyncType::ASYNC_UNSAFE;
         }
-        void buildLoggerName(const char*loggerName)
+        void buildLoggerName(const char *loggerName)
         {
             loggerName_ = loggerName;
         }
@@ -345,7 +210,7 @@ namespace zlog
 
     protected:
         LoggerType loggerType_;
-        const char* loggerName_ = nullptr;
+        const char *loggerName_ = nullptr;
         LogLevel::value limitLevel_;
         Formmatter::ptr formmatter_;
         std::vector<LogSink::ptr> sinks_;
