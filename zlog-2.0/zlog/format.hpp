@@ -119,12 +119,12 @@ namespace zlog
         }
     };
 
-    class TreadIdFormatItem : public FormatItem
+    class ThreadIdFormatItem : public FormatItem
     {
     public:
         void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            fmt::format_to(std::back_inserter(buffer), "{}", msg.line_);
+            fmt::format_to(std::back_inserter(buffer), "{}", msg.tid_);
         }
     };
 
@@ -307,7 +307,7 @@ namespace zlog
                 }
             }
             else if (key == "t")
-                return std::make_shared<TreadIdFormatItem>();
+                return std::make_shared<ThreadIdFormatItem>();
             else if (key == "c")
                 return std::make_shared<LoggerFormatItem>();
             else if (key == "f")
