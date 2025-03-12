@@ -20,6 +20,7 @@
 
 namespace zlog
 {
+
     class Logger
     {
     public:
@@ -36,62 +37,48 @@ namespace zlog
             return std::string(loggerName_);
         }
 
-        template <typename... Args>
-        void debug(const char *file, size_t line, const char *fmt, Args &&...args)
+        template <typename Level, typename... Args>
+        void logImpl(Level level, const char *file, size_t line, const char *fmt, Args &&...args)
         {
-            logImpl(LogLevel::value::DEBUG, file, line, fmt, std::forward<Args>(args)...);
-        }
-
-        template <typename... Args>
-        void info(const char *file, size_t line, const char *fmt, Args &&...args)
-        {
-            logImpl(LogLevel::value::INFO, file, line, fmt, std::forward<Args>(args)...);
-        }
-
-        template <typename... Args>
-        void warn(const char *file, size_t line, const char *fmt, Args &&...args)
-        {
-            logImpl(LogLevel::value::WARNING, file, line, fmt, std::forward<Args>(args)...);
-        }
-
-        template <typename... Args>
-        void error(const char *file, size_t line, const char *fmt, Args &&...args)
-        {
-            logImpl(LogLevel::value::ERROR, file, line, fmt, std::forward<Args>(args)...);
-        }
-
-        template <typename... Args>
-        void fatal(const char *file, size_t line, const char *fmt, Args &&...args)
-        {
-            logImpl(LogLevel::value::FATAL, file, line, fmt, std::forward<Args>(args)...);
+            logImplHelper(level, file, line, fmt, std::forward<Args>(args)...);
         }
 
     protected:
         template <typename... Args>
-        void logImpl(LogLevel::value level, const char *file, size_t line, const char *fmt, Args &&...args)
+        void logImplHelper(LogLevel::value level, const char *file, size_t line, const char *fmt, Args &&...args)
         {
             if (level < limitLevel_)
                 return;
 
-           thread_local std::string result;
-           result = fmt::vformat(fmt, fmt::make_format_args((args)...)); 
-           serialize(level, file, line, result.c_str());
-           result.clear();
+            // 线程局部缓冲区，预分配内存并复用
+            thread_local fmt::memory_buffer fmtBuffer;
+            fmtBuffer.clear(); // 清空旧数据
+
+            // 格式化到缓冲区
+            fmt::vformat_to(std::back_inserter(fmtBuffer), fmt, fmt::make_format_args((args)...));
+
+            // 添加终止符（如需要C风格字符串）
+            fmtBuffer.push_back('\0');
+
+            // 使用缓冲区内容（例如输出或转换为字符串）
+            serialize(level, file, line, fmtBuffer.data());
         }
 
         void serialize(LogLevel::value level, const char *file, size_t line, const char *data)
         {
-            // 3. 构建LogMessage对象
-            size_t threId = line % DEFAULT_POOL_NUM;
-            LogMessage *msg = MessagePool::getInstance().alloc(threId, level, file, line, data, loggerName_);
+			// 3. 构建LogMessage对象
+			size_t threId = line % DEFAULT_POOL_NUM;
+			LogMessage* msg = MessagePool::getInstance().alloc(threId, level, file, line, data, loggerName_);
 
-            // 4.格式化
-            thread_local std::string str;
-            str = std::move(formmatter_->format(*msg));
+			// 4.格式化
+			thread_local fmt::memory_buffer buffer;
+			buffer.clear();
+			formmatter_->format(buffer, *msg);  // 直接操作缓冲区
 
-            // 5. 日志落地
-            MessagePool::getInstance().dealloc(msg, threId);
-            log(str.c_str(), str.size());
+
+			// 5. 日志落地
+			MessagePool::getInstance().dealloc(msg, threId);
+			log(buffer.data(), buffer.size());
         }
         virtual void log(const char *data, size_t len) = 0;
 

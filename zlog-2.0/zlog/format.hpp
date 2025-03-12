@@ -34,28 +34,7 @@ namespace zlog
         void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
             std::string levelstr = LogLevel::toString(msg.level_);
-            fmt::text_style ts;
-            switch (msg.level_)
-            {
-            case LogLevel::value::DEBUG:
-                ts = fg(fmt::color::gray);
-                break;
-            case LogLevel::value::INFO:
-                ts = fg(fmt::color::green);
-                break;
-            case LogLevel::value::WARNING:
-                ts = fg(fmt::color::yellow);
-                break;
-            case LogLevel::value::ERROR:
-                ts = fg(fmt::color::red);
-                break;
-            case LogLevel::value::FATAL:
-                ts = fg(fmt::color::purple) | fmt::emphasis::bold;
-                break;
-            default:
-                break;
-            }
-            fmt::format_to(std::back_inserter(buffer), ts, "{}", levelstr);
+            fmt::format_to(std::back_inserter(buffer), "{}", levelstr);
         }
     };
 
@@ -119,12 +98,24 @@ namespace zlog
         }
     };
 
+
+    thread_local threadId id_cached = threadId();
+    thread_local std::string tidStr;
     class ThreadIdFormatItem : public FormatItem
     {
     public:
         void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            fmt::format_to(std::back_inserter(buffer), "{}", msg.tid_);
+            // 转换为字符串
+            if(id_cached == threadId())
+            {
+                id_cached = std::this_thread::get_id();
+                std::stringstream ss;
+                ss << id_cached;
+                tidStr = ss.str();
+            }
+
+            fmt::format_to(std::back_inserter(buffer), "{}", tidStr);
         }
     };
 
@@ -202,17 +193,6 @@ namespace zlog
             {
                 item->format(buffer, msg);
             }
-        }
-
-        std::string format(const LogMessage &msg)
-        {
-            thread_local fmt::memory_buffer buffer;
-            buffer.clear();
-            for (auto &item : items_)
-            {
-                item->format(buffer, msg);
-            }
-            return fmt::to_string(buffer);
         }
 
     protected:
