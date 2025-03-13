@@ -155,6 +155,7 @@ namespace zlog
         LOGGER_SYNC,
         LOGGER_ASYNC
     };
+    
     class LoggerBuilder
     {
     public:

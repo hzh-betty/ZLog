@@ -12,6 +12,10 @@
 #else
 #include <sys/mman.h> // Linux mmap头文件
 #endif
+
+/*
+    解决message频繁创建释放->创建一个对象池对每个message对象进行复用    
+*/
 namespace zlog
 {
     // 按页数申请内存（1页=4KB）
