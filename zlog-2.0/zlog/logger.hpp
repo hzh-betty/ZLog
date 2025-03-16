@@ -27,7 +27,8 @@ namespace zlog
         using ptr = std::shared_ptr<Logger>;
         Logger(const char *loggerName, LogLevel::value limitLevel,
                Formmatter::ptr &formmatter,
-               std::vector<LogSink::ptr> &sinks) : loggerName_(loggerName),
+               std::vector<LogSink::ptr> &sinks) : cnt_(1),
+                                                   loggerName_(loggerName),
                                                    limitLevel_(limitLevel), formmatter_(formmatter), sinks_(sinks.begin(), sinks.end())
         {
         }
@@ -66,23 +67,24 @@ namespace zlog
 
         void serialize(LogLevel::value level, const char *file, size_t line, const char *data)
         {
-			// 3. 构建LogMessage对象
-			size_t threId = line % DEFAULT_POOL_NUM;
-			LogMessage* msg = MessagePool::getInstance().alloc(threId, level, file, line, data, loggerName_);
+            // 3. 构建LogMessage对象
+            size_t threId = (line + cnt_) % DEFAULT_POOL_NUM;
+            cnt_++;
+            LogMessage *msg = MessagePool::getInstance().alloc(threId, level, file, line, data, loggerName_);
 
-			// 4.格式化
-			thread_local fmt::memory_buffer buffer;
-			buffer.clear();
-			formmatter_->format(buffer, *msg);  // 直接操作缓冲区
+            // 4.格式化
+            thread_local fmt::memory_buffer buffer;
+            buffer.clear();
+            formmatter_->format(buffer, *msg); // 直接操作缓冲区
 
-
-			// 5. 日志落地
-			MessagePool::getInstance().dealloc(msg, threId);
-			log(buffer.data(), buffer.size());
+            // 5. 日志落地
+            MessagePool::getInstance().dealloc(msg, threId);
+            log(buffer.data(), buffer.size());
         }
         virtual void log(const char *data, size_t len) = 0;
 
     protected:
+        std::atomic<int> cnt_;
         std::mutex mutex_;
         const char *loggerName_;
         std::atomic<LogLevel::value> limitLevel_;
@@ -155,7 +157,7 @@ namespace zlog
         LOGGER_SYNC,
         LOGGER_ASYNC
     };
-    
+
     class LoggerBuilder
     {
     public:
