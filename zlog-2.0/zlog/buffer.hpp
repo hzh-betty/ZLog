@@ -5,7 +5,7 @@
 #include <algorithm>
 namespace zlog
 {
-    static constexpr size_t DEFAULT_BUFFER_SIZE = 1024 * 1024 * 1;
+    static constexpr size_t DEFAULT_BUFFER_SIZE = 1024 * 1024 * 2;
     static constexpr size_t THRESHOLD_BUFFER_SIZE = 1024 * 1024 * 8;
     static constexpr size_t INCREMENT_BUFFER_SIZE = 1024 * 1024 * 1;
     class Buffer

@@ -121,10 +121,10 @@ namespace zlog
     public:
         AsyncLogger(const char *loggerName, LogLevel::value limitLevel,
                     Formmatter::ptr &formmatter,
-                    std::vector<LogSink::ptr> &sinks, AsyncType looperType) : Logger(loggerName, limitLevel, formmatter, sinks),
-                                                                              looper_(std::make_shared<AsyncLooper>(std::bind(&AsyncLogger::reLog,
-                                                                                                                              this, std::placeholders::_1),
-                                                                                                                    looperType))
+                    std::vector<LogSink::ptr> &sinks, AsyncType looperType, std::chrono::milliseconds milliseco) : Logger(loggerName, limitLevel, formmatter, sinks),
+                                                                                                                   looper_(std::make_shared<AsyncLooper>(std::bind(&AsyncLogger::reLog,
+                                                                                                                                                                   this, std::placeholders::_1),
+                                                                                                                                                         looperType, milliseco))
 
         {
         }
@@ -157,12 +157,13 @@ namespace zlog
         LOGGER_SYNC,
         LOGGER_ASYNC
     };
-
+    
     class LoggerBuilder
     {
     public:
         LoggerBuilder()
-            : loggerType_(LoggerType::LOGGER_SYNC), limitLevel_(LogLevel::value::DEBUG), looperType_(AsyncType::ASYNC_SAFE)
+            : loggerType_(LoggerType::LOGGER_SYNC), limitLevel_(LogLevel::value::DEBUG),
+              looperType_(AsyncType::ASYNC_SAFE), milliseco_(std::chrono::milliseconds(3000))
         {
         }
         void buildLoggerType(LoggerType loggerType)
@@ -185,6 +186,11 @@ namespace zlog
             limitLevel_ = limitLevel;
         }
 
+        void buildWaitTime(std::chrono::milliseconds milliseco)
+        {
+            milliseco_ = milliseco;
+        }
+
         void buildLoggerFormmater(const std::string &pattern)
         {
             formmatter_ = std::make_shared<Formmatter>(pattern);
@@ -205,6 +211,7 @@ namespace zlog
         Formmatter::ptr formmatter_;
         std::vector<LogSink::ptr> sinks_;
         AsyncType looperType_;
+        std::chrono::milliseconds milliseco_;
     };
 
     /* 局部日志器建造者 */
@@ -231,7 +238,7 @@ namespace zlog
 
             if (loggerType_ == LoggerType::LOGGER_ASYNC)
             {
-                return std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_);
+                return std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_, milliseco_);
             }
             return std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
         }
@@ -320,7 +327,7 @@ namespace zlog
             Logger::ptr logger;
             if (loggerType_ == LoggerType::LOGGER_ASYNC)
             {
-                logger = std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_);
+                logger = std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_, milliseco_);
             }
             else
             {
