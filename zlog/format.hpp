@@ -5,6 +5,19 @@
 #include <vector>
 #include <sstream>
 #include <cassert>
+#include <fmt/core.h>
+/*
+    %d 表示日期--包含子格式{%H-%M-%S}
+    %t 线程ID
+    %c 日志器名称
+    %f 源码文件名
+    %l 行号
+    %p 日志级别
+    %T 制表符缩进
+    %m 主体消息
+    %n 表示换行
+*/
+
 namespace zlog
 {
     /*抽象格式基类*/
@@ -12,25 +25,26 @@ namespace zlog
     {
     public:
         using prt = std::shared_ptr<FormatItem>;
-        virtual void format(std::ostream &out, const LogMessage &msg) = 0;
+        virtual void format(fmt::memory_buffer &buffer, const LogMessage &msg) = 0;
     };
 
     /*派生格式化子类--消息，等级，时间，文件名，行号，线程ID，日志器名，制表符，换行，其他*/
     class MessageFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << msg.payload_;
+            fmt::format_to(std::back_inserter(buffer), "{}", msg.payload_);
         }
     };
 
     class LevelFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << LogLevel::toString(msg.level_);
+            std::string levelstr = LogLevel::toString(msg.level_);
+            fmt::format_to(std::back_inserter(buffer), "{}", levelstr);
         }
     };
 
@@ -42,20 +56,34 @@ namespace zlog
             : timeFormat_(timeFormat)
         {
         }
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            time_t t = msg.curtime_; // 获取日志时间
-            struct tm lt;
+            thread_local std::string cached_time;
+            thread_local time_t last_cached = 0;
 
-// Windows使用localtime_s，Linux使用localtime_r
+            if (last_cached != msg.curtime_)
+            {
+                struct tm lt;
 #ifdef _WIN32
-            localtime_s(&lt, &t);
+                localtime_s(&lt, &msg.curtime_);
 #else
-            localtime_r(&t, &lt);
+                localtime_r(&msg.curtime_, &lt);
 #endif
-            char buffer[25] = {0};
-            strftime(buffer, sizeof(buffer), timeFormat_.c_str(), &lt); // 使用转换后的tm结构体
-            out << buffer;
+
+                // 使用临时缓冲区
+                char buffer[64];
+                size_t len = strftime(buffer, sizeof(buffer), timeFormat_.c_str(), &lt);
+                if (len > 0)
+                {
+                    cached_time.assign(buffer, len);
+                    last_cached = msg.curtime_;
+                }
+                else
+                {
+                    cached_time = "InvalidTime";
+                }
+            }
+            fmt::format_to(std::back_inserter(buffer), "{}", cached_time);
         }
 
     protected:
@@ -65,54 +93,65 @@ namespace zlog
     class FileFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << msg.file_;
+            fmt::format_to(std::back_inserter(buffer), "{}", msg.file_);
         }
     };
 
     class LineFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << msg.line_;
+            fmt::format_to(std::back_inserter(buffer), "{}", msg.line_);
         }
     };
 
-    class TreadIdFormatItem : public FormatItem
+    thread_local threadId id_cached = threadId();
+    thread_local std::string tidStr;
+    class ThreadIdFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << msg.tid_;
+            // 转换为字符串
+            if (id_cached == threadId())
+            {
+                id_cached = std::this_thread::get_id();
+                std::stringstream ss;
+                ss << id_cached;
+                tidStr = ss.str();
+            }
+
+            fmt::format_to(std::back_inserter(buffer), "{}", tidStr);
         }
     };
 
     class LoggerFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << msg.logger_;
+            fmt::format_to(std::back_inserter(buffer), "{}", msg.loggerName_);
         }
     };
 
     class TabFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << "\t";
+            fmt::format_to(std::back_inserter(buffer), "{}", "\t");
         }
     };
 
     class NLineFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << "\n";
+            fmt::format_to(std::back_inserter(buffer), "{}", "\n");
         }
     };
 
@@ -123,9 +162,9 @@ namespace zlog
             : str_(str)
         {
         }
-        void format(std::ostream &out, const LogMessage &msg) override
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            out << str_;
+            fmt::format_to(std::back_inserter(buffer), "{}", str_);
         }
 
     protected:
@@ -157,22 +196,12 @@ namespace zlog
             }
         }
 
-        void format(std::ostream &out, const LogMessage &msg)
+        void format(fmt::memory_buffer &buffer, const LogMessage &msg)
         {
             for (auto &item : items_)
             {
-                item->format(out, msg);
+                item->format(buffer, msg);
             }
-        }
-
-        std::string format(const LogMessage &msg)
-        {
-            std::stringstream ss;
-            for (auto &item : items_)
-            {
-                item->format(ss, msg);
-            }
-            return ss.str();
         }
 
     protected:
@@ -256,7 +285,7 @@ namespace zlog
 
             if (key == "d")
             {
-                if(!val.empty())
+                if (!val.empty())
                 {
                     return std::make_shared<TimeFormatItem>(val);
                 }
@@ -267,7 +296,7 @@ namespace zlog
                 }
             }
             else if (key == "t")
-                return std::make_shared<TreadIdFormatItem>();
+                return std::make_shared<ThreadIdFormatItem>();
             else if (key == "c")
                 return std::make_shared<LoggerFormatItem>();
             else if (key == "f")
@@ -292,7 +321,7 @@ namespace zlog
         }
 
     protected:
-        std::string pattern_; //格式化方式
+        std::string pattern_; // 格式化方式
         std::vector<FormatItem::prt> items_;
     };
 };

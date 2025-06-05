@@ -170,12 +170,12 @@ namespace zlog
         {
             loggerType_ = loggerType;
         }
+
         void buildEnalleUnSafe()
         {
-            if (loggerType_ == LoggerType::LOGGER_SYNC)
-                return;
             looperType_ = AsyncType::ASYNC_UNSAFE;
         }
+
         void buildLoggerName(const char *loggerName)
         {
             loggerName_ = loggerName;

@@ -20,9 +20,9 @@ namespace zlog
         LogLevel::value level_; // 日志等级
         const char *file_;      // 源码文件名称与行号
         size_t line_;
-        threadId tid_;        // 线程ID
-        const char *payload_; // 日志主体消息
-        const char *loggerName_;  // 日志器名称
+        threadId tid_;           // 线程ID
+        const char *payload_;    // 日志主体消息
+        const char *loggerName_; // 日志器名称
 
         LogMessage(LogLevel::value level,
                    const char *file, size_t line,
