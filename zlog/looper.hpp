@@ -6,13 +6,13 @@
 #include <functional>
 #include <memory>
 #include <atomic>
-#include<chrono>
+#include <chrono>
 
 namespace zlog
 {
 	enum class AsyncType
 	{
-		ASYNC_SAFE,  // 固定长度的缓冲区--阻塞
+		ASYNC_SAFE,	 // 固定长度的缓冲区--阻塞
 		ASYNC_UNSAFE // 扩容缓冲区
 	};
 
@@ -20,21 +20,21 @@ namespace zlog
 	class AsyncLooper
 	{
 	public:
-		using Functor = std::function<void(Buffer&)>;
+		using Functor = std::function<void(Buffer &)>;
 		using ptr = std::shared_ptr<AsyncLooper>;
-		AsyncLooper(const Functor& func, AsyncType looperType, std::chrono::milliseconds milliseco)
+		AsyncLooper(const Functor &func, AsyncType looperType, std::chrono::milliseconds milliseco)
 			: looperType_(looperType), stop_(false),
-			thread_(std::thread(&AsyncLooper::threadEntry, this)), callBack_(func), milliseco_(milliseco)
+			  thread_(std::thread(&AsyncLooper::threadEntry, this)), callBack_(func), milliseco_(milliseco)
 		{
 		}
 
-		void push(const char* data, size_t len)
+		void push(const char *data, size_t len)
 		{
 			std::unique_lock<std::mutex> lock(mutex_);
 			if (looperType_ == AsyncType::ASYNC_SAFE)
 			{
 				condPro_.wait(lock, [&]()
-					{ return proBuf_.writeAbleSize() >= len; });
+							  { return proBuf_.writeAbleSize() >= len; });
 			}
 			proBuf_.push(data, len);
 
@@ -70,11 +70,12 @@ namespace zlog
 						break;
 					}
 
-                    // 等待，超时返回
+					// 等待，超时返回
 					if (!condCon_.wait_for(lock, milliseco_, [this]()
-						{ return proBuf_.readAbleSize() >= FLUSH_BUFFER_SIZE || stop_; }))
+										   { return proBuf_.readAbleSize() >= FLUSH_BUFFER_SIZE || stop_; }))
 					{
-						if (proBuf_.empty()) continue;
+						if (proBuf_.empty())
+							continue;
 					}
 
 					// 2.唤醒后交换缓冲区
@@ -92,13 +93,13 @@ namespace zlog
 	private:
 		AsyncType looperType_;
 		std::atomic<bool> stop_; // 是否工作
-		Buffer proBuf_;          // 生产缓冲区
-		Buffer conBuf_;          // 消费缓冲区
+		Buffer proBuf_;			 // 生产缓冲区
+		Buffer conBuf_;			 // 消费缓冲区
 		std::mutex mutex_;
 		std::condition_variable condPro_;
 		std::condition_variable condCon_;
-		std::thread thread_; // 工作线程
-		Functor callBack_;   // 回调函数
+		std::thread thread_;				  // 工作线程
+		Functor callBack_;					  // 回调函数
 		std::chrono::milliseconds milliseco_; // 最大等待时间--毫秒
 	};
 };

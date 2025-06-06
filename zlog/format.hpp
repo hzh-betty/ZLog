@@ -6,17 +6,7 @@
 #include <sstream>
 #include <cassert>
 #include <fmt/core.h>
-/*
-    %d 表示日期--包含子格式{%H-%M-%S}
-    %t 线程ID
-    %c 日志器名称
-    %f 源码文件名
-    %l 行号
-    %p 日志级别
-    %T 制表符缩进
-    %m 主体消息
-    %n 表示换行
-*/
+#include <fmt/color.h>
 
 namespace zlog
 {
@@ -108,15 +98,16 @@ namespace zlog
         }
     };
 
-    thread_local threadId id_cached = threadId();
-    thread_local std::string tidStr;
+
+    inline thread_local threadId id_cached = threadId();
+    inline thread_local std::string tidStr;
     class ThreadIdFormatItem : public FormatItem
     {
     public:
         void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
             // 转换为字符串
-            if (id_cached == threadId())
+            if(id_cached == threadId())
             {
                 id_cached = std::this_thread::get_id();
                 std::stringstream ss;

@@ -3,11 +3,11 @@
 namespace zlog
 {
     // 1. 提供获取指定日志器的全局接口--避免用户使用单例对象创建
-    Logger::ptr getLogger(const std::string &name)
+    inline Logger::ptr getLogger(const std::string &name)
     {
         return LoggerManager::getInstance().getLogger(name);
     }
-    Logger::ptr rootLogger()
+    inline Logger::ptr rootLogger()
     {
         return LoggerManager::getInstance().rootLogger();
     }
