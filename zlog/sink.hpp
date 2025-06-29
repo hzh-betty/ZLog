@@ -53,6 +53,7 @@ namespace zlog
         void log(const char *data, size_t len) override
         {
             fmt::print(ofs_, "{:.{}}", data, len);
+            ofs_.flush(); // 确保日志及时写入磁盘
         }
 
     protected:
@@ -84,6 +85,7 @@ namespace zlog
                 rollOver();
             }
             fmt::print(ofs_, "{:.{}}", data, len);
+            ofs_.flush(); // 确保日志及时写入磁盘
             curSize_ += len;
         }
 
@@ -98,8 +100,12 @@ namespace zlog
 #else
             localtime_r(&t, &lt);
 #endif
-            std::string pathname = fmt::format("{}_{:%Y%m%d%H%M%S}-{}.log",
-                                               basename_, lt, nameCount_++);
+            // 先将时间格式化为字符串
+            char timeStr[64];
+            strftime(timeStr, sizeof(timeStr), "%Y%m%d%H%M%S", &lt);
+            
+            std::string pathname = fmt::format("{}_{}-{}.log",
+                                               basename_, timeStr, nameCount_++);
 
             return pathname;
         }
@@ -119,7 +125,7 @@ namespace zlog
         size_t nameCount_;
     };
 
-    // 修改工厂类支持移动语义
+    // 工厂类支持移动语义
     class SinkFactory
     {
     public:

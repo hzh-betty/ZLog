@@ -12,7 +12,6 @@
 #include "message.hpp"
 #include "sink.hpp"
 #include "looper.hpp"
-#include "objectpool.hpp"
 #include <unordered_map>
 #include <mutex>
 #include <atomic>
@@ -26,10 +25,9 @@ namespace zlog
     public:
         using ptr = std::shared_ptr<Logger>;
         Logger(const char *loggerName, LogLevel::value limitLevel,
-               Formmatter::ptr &formmatter,
-               std::vector<LogSink::ptr> &sinks) : cnt_(1),
-                                                   loggerName_(loggerName),
-                                                   limitLevel_(limitLevel), formmatter_(formmatter), sinks_(sinks.begin(), sinks.end())
+               Formatter::ptr &formatter,
+               std::vector<LogSink::ptr> &sinks) : loggerName_(loggerName),
+                                                   limitLevel_(limitLevel), formatter_(formatter), sinks_(sinks.begin(), sinks.end())
         {
         }
 
@@ -67,28 +65,34 @@ namespace zlog
 
         void serialize(LogLevel::value level, const char *file, size_t line, const char *data)
         {
-            // 3. 构建LogMessage对象
-            size_t threId = (line + cnt_) % DEFAULT_POOL_NUM;
-            cnt_++;
-            LogMessage *msg = MessagePool::getInstance().alloc(threId, level, file, line, data, loggerName_);
+            // 使用线程本地的LogMessage对象，避免频繁分配释放
+            thread_local LogMessage msg(LogLevel::value::DEBUG, "", 0, "", "");
 
-            // 4.格式化
+            msg.curtime_ = Date::getCurrentTime();
+
+            // 更新消息内容
+            msg.level_ = level;
+            msg.file_ = file;
+            msg.line_ = line;
+            msg.tid_ = std::this_thread::get_id();
+            msg.payload_ = data;
+            msg.loggerName_ = loggerName_;
+
+            // 格式化
             thread_local fmt::memory_buffer buffer;
             buffer.clear();
-            formmatter_->format(buffer, *msg); // 直接操作缓冲区
+            formatter_->format(buffer, msg);
 
-            // 5. 日志落地
-            MessagePool::getInstance().dealloc(msg, threId);
+            // 日志落地
             log(buffer.data(), buffer.size());
         }
         virtual void log(const char *data, size_t len) = 0;
 
     protected:
-        std::atomic<int> cnt_;
         std::mutex mutex_;
         const char *loggerName_;
         std::atomic<LogLevel::value> limitLevel_;
-        Formmatter::ptr formmatter_;
+        Formatter::ptr formatter_;
         std::vector<LogSink::ptr> sinks_;
     };
 
@@ -97,8 +101,8 @@ namespace zlog
     {
     public:
         SyncLogger(const char *loggerName, LogLevel::value limitLevel,
-                   Formmatter::ptr &formmatter,
-                   std::vector<LogSink::ptr> &sinks) : Logger(loggerName, limitLevel, formmatter, sinks)
+                   Formatter::ptr &formatter,
+                   std::vector<LogSink::ptr> &sinks) : Logger(loggerName, limitLevel, formatter, sinks)
         {
         }
 
@@ -120,9 +124,9 @@ namespace zlog
     {
     public:
         AsyncLogger(const char *loggerName, LogLevel::value limitLevel,
-                    Formmatter::ptr &formmatter,
+                    Formatter::ptr &formatter,
                     std::vector<LogSink::ptr> &sinks, AsyncType looperType,
-                    std::chrono::milliseconds milliseco) : Logger(loggerName, limitLevel, formmatter, sinks),
+                    std::chrono::milliseconds milliseco) : Logger(loggerName, limitLevel, formatter, sinks),
                                                            looper_(std::make_shared<AsyncLooper>(std::bind(&AsyncLogger::reLog,
                                                                                                            this, std::placeholders::_1),
                                                                                                  looperType, milliseco))
@@ -192,9 +196,9 @@ namespace zlog
             milliseco_ = milliseco;
         }
 
-        void buildLoggerFormmater(const std::string &pattern)
+        void buildLoggerFormatter(const std::string &pattern)
         {
-            formmatter_ = std::make_shared<Formmatter>(pattern);
+            formatter_ = std::make_shared<Formatter>(pattern);
         }
 
         template <typename SinkType, typename... Args>
@@ -209,7 +213,7 @@ namespace zlog
         LoggerType loggerType_;
         const char *loggerName_ = nullptr;
         LogLevel::value limitLevel_;
-        Formmatter::ptr formmatter_;
+        Formatter::ptr formatter_;
         std::vector<LogSink::ptr> sinks_;
         AsyncType looperType_;
         std::chrono::milliseconds milliseco_;
@@ -227,9 +231,9 @@ namespace zlog
                 return Logger::ptr();
             }
 
-            if (formmatter_.get() == nullptr)
+            if (formatter_.get() == nullptr)
             {
-                formmatter_ = std::make_shared<Formmatter>();
+                formatter_ = std::make_shared<Formatter>();
             }
 
             if (sinks_.empty())
@@ -239,9 +243,9 @@ namespace zlog
 
             if (loggerType_ == LoggerType::LOGGER_ASYNC)
             {
-                return std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_, milliseco_);
+                return std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formatter_, sinks_, looperType_, milliseco_);
             }
-            return std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
+            return std::make_shared<SyncLogger>(loggerName_, limitLevel_, formatter_, sinks_);
         }
     };
 
@@ -315,9 +319,9 @@ namespace zlog
                 return Logger::ptr();
             }
 
-            if (formmatter_.get() == nullptr)
+            if (formatter_.get() == nullptr)
             {
-                formmatter_ = std::make_shared<Formmatter>();
+                formatter_ = std::make_shared<Formatter>();
             }
 
             if (sinks_.empty())
@@ -328,11 +332,11 @@ namespace zlog
             Logger::ptr logger;
             if (loggerType_ == LoggerType::LOGGER_ASYNC)
             {
-                logger = std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_, looperType_, milliseco_);
+                logger = std::make_shared<AsyncLogger>(loggerName_, limitLevel_, formatter_, sinks_, looperType_, milliseco_);
             }
             else
             {
-                logger = std::make_shared<SyncLogger>(loggerName_, limitLevel_, formmatter_, sinks_);
+                logger = std::make_shared<SyncLogger>(loggerName_, limitLevel_, formatter_, sinks_);
             }
             LoggerManager::getInstance().addLogger(logger);
             return logger;

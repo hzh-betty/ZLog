@@ -99,17 +99,17 @@ namespace zlog
     };
 
 
-    inline thread_local threadId id_cached = threadId();
-    inline thread_local std::string tidStr;
+    thread_local threadId id_cached{};
+    thread_local std::string tidStr;
     class ThreadIdFormatItem : public FormatItem
     {
     public:
         void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
-            // 转换为字符串
-            if(id_cached == threadId())
+            // 当缓存的ID与当前消息ID不同时才更新
+            if(id_cached != msg.tid_)
             {
-                id_cached = std::this_thread::get_id();
+                id_cached = msg.tid_;
                 std::stringstream ss;
                 ss << id_cached;
                 tidStr = ss.str();
@@ -174,11 +174,11 @@ namespace zlog
         %n 表示换行
     */
 
-    class Formmatter
+    class Formatter
     {
     public:
-        using ptr = std::shared_ptr<Formmatter>;
-        Formmatter(const std::string &pattern = "[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n")
+        using ptr = std::shared_ptr<Formatter>;
+        Formatter(const std::string &pattern = "[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n")
             : pattern_(pattern)
         {
             if (!parsePattern())

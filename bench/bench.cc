@@ -62,7 +62,7 @@ void syncBench(size_t threadNum)
 {
     std::unique_ptr<zlog::GlobalLoggerBuilder> builder(new zlog::GlobalLoggerBuilder());
     builder->buildLoggerName("sync_logger");
-    builder->buildLoggerFormmater("[%d]%m%n");
+    builder->buildLoggerFormatter("[%d]%m%n");
     builder->buildLoggerType(zlog::LoggerType::LOGGER_SYNC);
     // builder->buildLoggerSink<zlog::FileSink>("./logfile/sync.log");
    // builder->buildLoggerSink<zlog::StdOutSink>();
@@ -75,7 +75,7 @@ void asyncBench(size_t threadNum)
 {
     std::unique_ptr<zlog::GlobalLoggerBuilder> builder(new zlog::GlobalLoggerBuilder());
     builder->buildLoggerName("async_logger");
-    builder->buildLoggerFormmater("%m%n ");
+    builder->buildLoggerFormatter("%m%n ");
     builder->buildLoggerType(zlog::LoggerType::LOGGER_ASYNC);
     builder->buildEnalleUnSafe();
     builder->buildLoggerSink<zlog::FileSink>("./logfile/async.log");

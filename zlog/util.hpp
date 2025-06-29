@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 #include <chrono>
-#include<atomic>
+#include <atomic>
 #ifdef _WIN32
 #include <direct.h>
 #else
@@ -17,7 +17,7 @@ namespace zlog
         1. 关于日期的常用接口
         2. 关于文件的常用接口
     */
-    
+
     class Date
     {
     public:
@@ -65,13 +65,18 @@ namespace zlog
                 pos = pathname.find_first_of("/\\", index);
                 if (pos == std::string::npos)
                 {
-                    makeDir(pathname);
+                    // 应该创建完整路径而不是原始路径
+                    if (!exists(pathname))
+                    {
+                        makeDir(pathname);
+                    }
                     break;
                 }
                 std::string parentPath = pathname.substr(0, pos + 1);
                 if (!exists(parentPath))
                 {
-                    makeDir(pathname);
+                    // 应该创建父路径而不是原始路径
+                    makeDir(parentPath);
                 }
                 index = pos + 1;
             }
