@@ -26,7 +26,7 @@ void bench(const std::string &loggerName, size_t threadNum, size_t messNum, size
 
             for(size_t j = 0;j < arvgNum;j++)
             {
-                logger->fatal("{}",msg.c_str());
+                logger->ZLOG_FATAL("{}",msg.c_str());
             }
             auto end = std::chrono::high_resolution_clock::now();
 
