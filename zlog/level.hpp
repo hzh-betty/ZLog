@@ -37,8 +37,12 @@ namespace zlog
                 return "ERROR";
             case LogLevel::value::FATAL:
                 return "FATAL";
+            case LogLevel::value::OFF:
+                return "OFF";
+            case LogLevel::value::UNKNOWN:
+            default:
+                return "UNKNOWN";
             }
-            return "UNKNOWN";
         }
     };
 };

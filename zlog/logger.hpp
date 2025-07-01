@@ -268,7 +268,7 @@ namespace zlog
 
         bool hasLogger(const std::string &name)
         {
-            std::unique_lock<std::mutex>(mutex_);
+            std::unique_lock<std::mutex> lock(mutex_);
             auto iter = loggers_.find(name);
             if (iter == loggers_.end())
             {
@@ -278,7 +278,7 @@ namespace zlog
         }
         Logger::ptr getLogger(const std::string &name)
         {
-            std::unique_lock<std::mutex>(mutex_);
+            std::unique_lock<std::mutex> lock(mutex_);
             auto iter = loggers_.find(name);
             if (iter == loggers_.end())
             {
